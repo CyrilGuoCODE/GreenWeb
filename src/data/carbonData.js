@@ -34,4 +34,49 @@ export const carbonData = {
   'Ireland': { carbonIntensity: 250, greenEnergyCoverage: 40 },
   'Singapore': { carbonIntensity: 550, greenEnergyCoverage: 10 },
   'Taiwan': { carbonIntensity: 600, greenEnergyCoverage: 15 }
+};
+
+// 性能指标权重
+export const performanceWeights = {
+  firstContentfulPaint: 0.3,
+  largestContentfulPaint: 0.3,
+  timeToInteractive: 0.2,
+  totalBlockingTime: 0.1,
+  cumulativeLayoutShift: 0.1
+};
+
+// 碳排放因子
+export const carbonFactors = {
+  // 每MB数据传输的碳排放（gCO2e）
+  dataTransfer: 0.5,
+  // 每千瓦时服务器能耗的碳排放（gCO2e）
+  serverEnergy: 500,
+  // 每千瓦时网络传输能耗的碳排放（gCO2e）
+  networkEnergy: 200,
+  // 每千瓦时客户端能耗的碳排放（gCO2e）
+  clientEnergy: 400
+};
+
+// 性能评分标准
+export const performanceGrades = {
+  firstContentfulPaint: {
+    good: 1800,
+    poor: 3000
+  },
+  largestContentfulPaint: {
+    good: 2500,
+    poor: 4000
+  },
+  timeToInteractive: {
+    good: 3500,
+    poor: 6000
+  },
+  totalBlockingTime: {
+    good: 200,
+    poor: 600
+  },
+  cumulativeLayoutShift: {
+    good: 0.1,
+    poor: 0.25
+  }
 }; 
