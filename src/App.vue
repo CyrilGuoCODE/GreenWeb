@@ -39,7 +39,7 @@
             <div ref="heatmapRef" class="heatmap"></div>
             <div class="carbon-stats">
               <p>碳排放量: {{ result.carbonEmission.toFixed(2) }} kgCO2e/年</p>
-              <p>碳强度: {{ getCarbonIntensity(result.country) }} gCO2e/kWh</p>
+              <p>碳强度: {{ result.carbonIntensity }} gCO2e/kWh</p>
             </div>
           </div>
 
@@ -65,44 +65,74 @@
 import { ref } from 'vue'
 import { Check, Close } from '@element-plus/icons-vue'
 import * as d3 from 'd3'
-import axios from 'axios'
+import { dataCenterLocations, regionToCountry, carbonData } from './data/carbonData'
 
 const domain = ref('')
 const loading = ref(false)
 const result = ref(null)
 const heatmapRef = ref(null)
 
-const checkCarbon = async () => {
+const checkCarbon = () => {
   if (!domain.value) return
   
   loading.value = true
   try {
-    const response = await axios.post('/api/check', { domain: domain.value })
-    result.value = response.data
-    if (result.value) {
+    // 模拟检测过程
+    setTimeout(() => {
+      const provider = detectProvider(domain.value)
+      const region = detectRegion(provider)
+      const country = regionToCountry[region] || 'Unknown'
+      const countryData = carbonData[country] || {
+        carbonIntensity: 500,
+        greenEnergyCoverage: 0
+      }
+
+      const serverPower = 300 // 假设服务器功耗为300W
+      const carbonEmission = countryData.carbonIntensity * serverPower
+      const isGreen = countryData.greenEnergyCoverage > 80
+
+      result.value = {
+        isGreen,
+        carbonEmission,
+        carbonIntensity: countryData.carbonIntensity,
+        country,
+        provider,
+        region,
+        suggestions: generateSuggestions(isGreen, countryData)
+      }
+
       renderHeatmap()
-    }
+      loading.value = false
+    }, 500) // 添加500ms延迟模拟检测过程
   } catch (error) {
     console.error('检测失败:', error)
-  } finally {
     loading.value = false
   }
 }
 
-const getCarbonIntensity = (country) => {
-  const carbonData = {
-    'China': 800,
-    'United States': 400,
-    'Germany': 300,
-    'France': 100,
-    'Sweden': 50,
-    'Norway': 20,
-    'Iceland': 10,
-    'Denmark': 150,
-    'Netherlands': 350,
-    'Japan': 450
+const detectProvider = (domain) => {
+  if (domain.includes('aws')) return 'aws'
+  if (domain.includes('google') || domain.includes('gcp')) return 'gcp'
+  if (domain.includes('azure')) return 'azure'
+  return 'unknown'
+}
+
+const detectRegion = (provider) => {
+  if (provider === 'unknown') return 'Unknown'
+  const regions = dataCenterLocations[provider]
+  return regions[Math.floor(Math.random() * regions.length)]
+}
+
+const generateSuggestions = (isGreen, countryData) => {
+  const suggestions = []
+  if (!isGreen) {
+    suggestions.push('建议迁移到绿色能源覆盖区域')
+    suggestions.push('考虑使用可再生能源证书')
   }
-  return carbonData[country] || 500
+  if (countryData.carbonIntensity > 400) {
+    suggestions.push('建议优化服务器能效')
+  }
+  return suggestions
 }
 
 const renderHeatmap = () => {
@@ -117,7 +147,7 @@ const renderHeatmap = () => {
   
   // 创建热力图数据
   const data = []
-  const intensity = getCarbonIntensity(result.value.country)
+  const intensity = result.value.carbonIntensity
   for (let i = 0; i < 10; i++) {
     for (let j = 0; j < 10; j++) {
       data.push({
