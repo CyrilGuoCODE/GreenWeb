@@ -1,18 +1,13 @@
 const express = require('express');
 const dns = require('dns');
 const { promisify } = require('util');
-const Redis = require('redis');
 const csv = require('csv-parser');
 const fs = require('fs');
 
 const app = express();
 const resolve4 = promisify(dns.resolve4);
-const redisClient = Redis.createClient();
 
 app.use(express.json());
-
-// 缓存配置
-const CACHE_TTL = 3600; // 1小时缓存
 
 // 模拟数据中心位置数据
 const dataCenterLocations = {
@@ -57,12 +52,6 @@ const carbonData = loadCarbonData();
 // 检查域名/IP的碳排放
 async function checkCarbon(domain) {
   try {
-    // 检查Redis缓存
-    const cachedResult = await redisClient.get(domain);
-    if (cachedResult) {
-      return JSON.parse(cachedResult);
-    }
-
     // 解析域名
     const ip = await resolve4(domain);
     
@@ -91,11 +80,6 @@ async function checkCarbon(domain) {
       region,
       suggestions: generateSuggestions(isGreen, countryData)
     };
-
-    // 存入Redis缓存
-    await redisClient.set(domain, JSON.stringify(result), {
-      EX: CACHE_TTL
-    });
 
     return result;
   } catch (error) {
