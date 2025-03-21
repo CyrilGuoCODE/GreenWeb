@@ -25,6 +25,46 @@
           </template>
         </el-input>
         <p class="input-hint">例如: aws.example.com, google.example.com</p>
+        
+        <div class="advanced-options">
+          <el-collapse>
+            <el-collapse-item title="高级选项" name="1">
+              <div class="options-grid">
+                <div class="option-item">
+                  <span class="option-label">页面类型：</span>
+                  <el-select v-model="advancedOptions.pageType" placeholder="选择页面类型">
+                    <el-option label="简单页面" value="simple" />
+                    <el-option label="博客页面" value="blog" />
+                    <el-option label="电商页面" value="ecommerce" />
+                    <el-option label="媒体页面" value="media" />
+                    <el-option label="Web应用" value="webapp" />
+                  </el-select>
+                </div>
+                <div class="option-item">
+                  <span class="option-label">连接类型：</span>
+                  <el-select v-model="advancedOptions.connectionType" placeholder="选择连接类型">
+                    <el-option label="移动网络" value="mobile" />
+                    <el-option label="WiFi" value="wifi" />
+                    <el-option label="固定宽带" value="fixed" />
+                  </el-select>
+                </div>
+                <div class="option-item">
+                  <span class="option-label">网站流量：</span>
+                  <el-select v-model="advancedOptions.trafficLevel" placeholder="选择流量级别">
+                    <el-option label="低流量" value="low" />
+                    <el-option label="中等流量" value="medium" />
+                    <el-option label="高流量" value="high" />
+                    <el-option label="非常高流量" value="veryhigh" />
+                  </el-select>
+                </div>
+                <div class="option-item">
+                  <span class="option-label">月访问量：</span>
+                  <el-input-number v-model="advancedOptions.monthlyVisits" :min="1000" :max="10000000" :step="1000" />
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
       </div>
 
       <div v-if="loading" class="loading-container">
@@ -44,17 +84,37 @@
             </div>
             <div class="summary-content">
               <h2>{{ result.isGreen ? '碳中和' : '非碳中和' }}</h2>
-              <p>总碳排放量: {{ result.totalCarbonEmission.toFixed(2) }} gCO2e</p>
+              <p>单次访问碳排放量: {{ result.totalCarbonEmission.toFixed(2) }} gCO2e</p>
+              <p>每月碳排放量: {{ result.monthlyCarbonEmission.toFixed(2) }} kgCO2e</p>
             </div>
           </div>
         </div>
 
         <div class="result-grid">
-          <div class="result-card status">
+          <div class="result-card energy-source">
             <div class="card-header">
-              <h3>服务器信息</h3>
+              <h3>能源分析</h3>
               <div class="card-icon">
                 <el-icon><DataBoard /></el-icon>
+              </div>
+            </div>
+            <div class="energy-chart">
+              <div class="donut-chart">
+                <div class="donut-hole">{{ result.renewablePercentage }}%</div>
+                <div class="donut-ring">
+                  <div class="donut-segment renewable" :style="`transform: rotate(0deg); transform-origin: center; clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%, 50% 50%); clip: rect(0px, 100px, 100px, 50px); transform: rotate(${3.6 * result.renewablePercentage}deg);`"></div>
+                  <div class="donut-segment fossil" :style="`transform: rotate(${3.6 * result.renewablePercentage}deg); transform-origin: center; clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%, 50% 50%); clip: rect(0px, 100px, 100px, 50px);`"></div>
+                </div>
+              </div>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <div class="legend-color renewable"></div>
+                  <span>可再生能源 ({{ result.renewablePercentage }}%)</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-color fossil"></div>
+                  <span>化石能源 ({{ 100 - result.renewablePercentage }}%)</span>
+                </div>
               </div>
             </div>
             <div class="details">
@@ -70,34 +130,51 @@
                 <span class="detail-label">国家:</span>
                 <span class="detail-value">{{ result.country }}</span>
               </div>
+              <div class="detail-item">
+                <span class="detail-label">页面类型:</span>
+                <span class="detail-value">{{ advancedOptions.pageType }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">页面大小:</span>
+                <span class="detail-value">{{ result.pageSize }} KB</span>
+              </div>
             </div>
           </div>
 
-          <div class="result-card performance">
+          <div class="result-card data-analysis">
             <div class="card-header">
-              <h3>性能指标</h3>
+              <h3>数据传输分析</h3>
               <div class="card-icon">
-                <el-icon><Timer /></el-icon>
+                <el-icon><Connection /></el-icon>
               </div>
             </div>
-            <div class="performance-score">
-              <div class="score-circle" :style="getScoreStyle(result.performanceScore)">
-                <span class="score-text">{{ result.performanceScore }}</span>
+            <div class="details">
+              <div class="detail-item">
+                <span class="detail-label">连接类型:</span>
+                <span class="detail-value">{{ advancedOptions.connectionType }}</span>
               </div>
-            </div>
-            <div class="performance-metrics">
-              <div v-for="(value, metric) in result.performance" :key="metric" class="metric-item">
-                <span class="metric-name">{{ formatMetricName(metric) }}:</span>
-                <span :class="['metric-value', getMetricGrade(metric, value)]">
-                  {{ formatMetricValue(metric, value) }}
-                </span>
+              <div class="detail-item">
+                <span class="detail-label">能源强度:</span>
+                <span class="detail-value">{{ result.energyIntensity }} kWh/GB</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">数据中心能耗:</span>
+                <span class="detail-value">{{ (result.dataCenterEnergy * 1000).toFixed(3) }} Wh</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">传输能耗:</span>
+                <span class="detail-value">{{ (result.transmissionEnergy * 1000).toFixed(3) }} Wh</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">客户端能耗:</span>
+                <span class="detail-value">{{ (result.deviceEnergy * 1000).toFixed(3) }} Wh</span>
               </div>
             </div>
           </div>
 
           <div class="result-card carbon-map">
             <div class="card-header">
-              <h3>碳排放热力图</h3>
+              <h3>碳排放分析</h3>
               <div class="card-icon">
                 <el-icon><PieChart /></el-icon>
               </div>
@@ -105,21 +182,28 @@
             <div ref="heatmapRef" class="heatmap"></div>
             <div class="carbon-stats">
               <div class="carbon-stat-item">
-                <span class="stat-label">数据传输:</span>
+                <span class="stat-label">数据传输碳排放:</span>
                 <span class="stat-value">{{ result.dataTransferCarbon.toFixed(2) }} gCO2e</span>
               </div>
               <div class="carbon-stat-item">
-                <span class="stat-label">服务器能耗:</span>
+                <span class="stat-label">服务器碳排放:</span>
                 <span class="stat-value">{{ result.serverCarbon.toFixed(2) }} gCO2e</span>
               </div>
               <div class="carbon-stat-item">
-                <span class="stat-label">网络传输:</span>
+                <span class="stat-label">网络传输碳排放:</span>
                 <span class="stat-value">{{ result.networkCarbon.toFixed(2) }} gCO2e</span>
               </div>
               <div class="carbon-stat-item">
-                <span class="stat-label">客户端能耗:</span>
+                <span class="stat-label">客户端碳排放:</span>
                 <span class="stat-value">{{ result.clientCarbon.toFixed(2) }} gCO2e</span>
               </div>
+            </div>
+            <div class="carbon-total">
+              <div class="total-item">
+                <span class="total-label">年度碳排放:</span>
+                <span class="total-value">{{ result.annualCarbonEmission.toFixed(2) }} kgCO2e</span>
+              </div>
+              <div class="total-info">相当于种植{{ Math.round(result.annualCarbonEmission / 25) }}棵树才能抵消</div>
             </div>
           </div>
 
@@ -127,7 +211,7 @@
             <div class="card-header">
               <h3>优化建议</h3>
               <div class="card-icon">
-                <el-icon><Light /></el-icon>
+                <el-icon><Connection /></el-icon>
               </div>
             </div>
             <ul class="suggestion-list">
@@ -151,241 +235,417 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Check, Close, DataBoard, Timer, Light, PieChart, Opportunity, Search } from '@element-plus/icons-vue'
-import * as d3 from 'd3'
-import { 
-  dataCenterLocations, 
-  regionToCountry, 
-  carbonData,
-  performanceWeights,
-  carbonFactors,
-  performanceGrades
-} from './data/carbonData'
+import { ref, reactive, onMounted } from 'vue'
+import * as echarts from 'echarts/core'
+import { HeatmapChart } from 'echarts/charts'
+import {
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  VisualMapComponent
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import {
+  Search,
+  DataBoard,
+  Connection,
+  Check,
+  Close,
+  Timer,
+  PieChart,
+  Opportunity
+} from '@element-plus/icons-vue'
+import {
+  findProviderAndRegion,
+  dataCenterLocationMapping,
+  regionToCountry,
+  carbonIntensityData,
+  performanceMetricsWeight,
+  carbonEmissionFactors,
+  performanceGradeStandard,
+  dataCenterEnergySource,
+  webPageSizeByType,
+  dataTransferEnergyIntensity,
+  trafficLevels,
+  energyPerVisit
+} from '../data/carbonData'
 
 const domain = ref('')
 const loading = ref(false)
 const result = ref(null)
 const heatmapRef = ref(null)
+let heatmapChart = null
 
-const checkCarbon = () => {
+// 高级选项设置
+const advancedOptions = reactive({
+  pageType: 'simple',
+  connectionType: 'wifi',
+  trafficLevel: 'medium',
+  monthlyVisits: 50000
+})
+
+// 检查网站碳中和状态
+const checkCarbon = async () => {
   if (!domain.value) return
-  
-  // 清空之前的结果
-  if (heatmapRef.value) {
-    heatmapRef.value.innerHTML = ''
-  }
-  
+
   loading.value = true
+  result.value = null
+
   try {
-    // 模拟检测过程
-    setTimeout(() => {
-      const provider = detectProvider(domain.value)
-      const region = detectRegion(provider)
-      const country = regionToCountry[region] || 'Unknown'
-      const countryData = carbonData[country] || {
-        carbonIntensity: 500,
-        greenEnergyCoverage: 0
-      }
+    // 模拟API请求延迟
+    await new Promise(resolve => setTimeout(resolve, 2000))
 
-      // 模拟性能指标
-      const performance = generatePerformanceMetrics()
-      const performanceScore = calculatePerformanceScore(performance)
-
-      // 计算碳排放
-      const dataTransfer = Math.random() * 5 + 1 // 1-6MB
-      const serverPower = 300 // 假设服务器功耗为300W
-      const networkPower = 100 // 假设网络传输功耗为100W
-      const clientPower = 200 // 假设客户端功耗为200W
-
-      const dataTransferCarbon = dataTransfer * carbonFactors.dataTransfer
-      const serverCarbon = (serverPower / 1000) * carbonFactors.serverEnergy
-      const networkCarbon = (networkPower / 1000) * carbonFactors.networkEnergy
-      const clientCarbon = (clientPower / 1000) * carbonFactors.clientEnergy
-      const totalCarbonEmission = dataTransferCarbon + serverCarbon + networkCarbon + clientCarbon
-
-      const isGreen = countryData.greenEnergyCoverage > 80
-
-      result.value = {
-        isGreen,
-        performance,
-        performanceScore,
-        totalCarbonEmission,
-        dataTransferCarbon,
-        serverCarbon,
-        networkCarbon,
-        clientCarbon,
-        country,
-        provider,
-        region,
-        suggestions: generateSuggestions(isGreen, countryData, performance)
-      }
-
-      loading.value = false
-      
-      // 渲染热力图
-      setTimeout(() => {
-        renderHeatmap()
-      }, 100)
-    }, 1500) // 增加延迟模拟更长的检测过程
+    // 获取服务商和区域信息
+    const { provider, region } = findProviderAndRegion(domain.value)
+    
+    // 获取国家信息
+    const country = regionToCountry[region] || '未知'
+    
+    // 获取碳排放强度
+    const intensity = carbonIntensityData[country]?.carbonIntensity || 500
+    
+    // 可再生能源比例
+    const renewablePercentage = dataCenterEnergySource[provider]?.[region]?.renewable || carbonIntensityData[country]?.greenEnergy || 30
+    
+    // 页面大小计算（基于页面类型）
+    const pageSize = webPageSizeByType[advancedOptions.pageType] || 2000 // KB
+    
+    // 能源强度计算（基于连接类型）
+    const energyIntensity = dataTransferEnergyIntensity[advancedOptions.connectionType] || 0.025 // kWh/GB
+    
+    // 能源消耗计算
+    const dataCenterEnergy = energyPerVisit.dataCenter * (pageSize / 1000) // kWh
+    const transmissionEnergy = energyPerVisit.transmission * (pageSize / 1000) // kWh
+    const deviceEnergy = energyPerVisit.device * (pageSize / 1000) // kWh
+    
+    // 碳排放计算
+    const dataTransferCarbon = (pageSize / 1000) * carbonEmissionFactors.dataTransfer
+    const serverCarbon = dataCenterEnergy * intensity * (1 - renewablePercentage / 100)
+    const networkCarbon = transmissionEnergy * intensity * 0.5 // 假设网络基础设施使用50%的绿色能源
+    const clientCarbon = deviceEnergy * intensity * 0.7 // 假设终端设备使用30%的绿色能源
+    
+    // 总碳排放量
+    const totalCarbonEmission = dataTransferCarbon + serverCarbon + networkCarbon + clientCarbon
+    
+    // 月度和年度碳排放计算
+    const monthlyVisits = advancedOptions.monthlyVisits || trafficLevels[advancedOptions.trafficLevel] || 50000
+    const monthlyCarbonEmission = (totalCarbonEmission * monthlyVisits) / 1000 // kg CO2e
+    const annualCarbonEmission = monthlyCarbonEmission * 12 // kg CO2e
+    
+    // 性能指标模拟
+    const performance = {
+      fcp: Math.floor(Math.random() * 1000) + 500,
+      lcp: Math.floor(Math.random() * 2000) + 800,
+      tti: Math.floor(Math.random() * 3000) + 1000,
+      tbt: Math.floor(Math.random() * 300),
+      cls: Math.random() * 0.25
+    }
+    
+    // 性能得分计算
+    const performanceScore = calculatePerformanceScore(performance)
+    
+    // 根据性能和碳排放生成建议
+    const suggestions = generateSuggestions(performance, {
+      isGreen: renewablePercentage > 70,
+      pageSize,
+      totalCarbonEmission,
+      provider,
+      country
+    })
+    
+    // 设置结果
+    result.value = {
+      provider,
+      region,
+      country,
+      isGreen: renewablePercentage > 70,
+      renewablePercentage,
+      dataTransferCarbon,
+      serverCarbon,
+      networkCarbon,
+      clientCarbon,
+      totalCarbonEmission,
+      monthlyCarbonEmission,
+      annualCarbonEmission,
+      performance,
+      performanceScore,
+      suggestions,
+      pageSize,
+      energyIntensity,
+      dataCenterEnergy,
+      transmissionEnergy,
+      deviceEnergy
+    }
+    
+    // 渲染碳排放热力图
+    nextTick(() => {
+      renderHeatmap()
+    })
   } catch (error) {
-    console.error('检测失败:', error)
+    console.error('Error:', error)
+  } finally {
     loading.value = false
   }
 }
 
-const generatePerformanceMetrics = () => {
-  return {
-    firstContentfulPaint: Math.random() * 3000 + 1000,
-    largestContentfulPaint: Math.random() * 4000 + 1500,
-    timeToInteractive: Math.random() * 5000 + 2000,
-    totalBlockingTime: Math.random() * 500 + 100,
-    cumulativeLayoutShift: Math.random() * 0.3
-  }
-}
-
+// 计算性能得分
 const calculatePerformanceScore = (performance) => {
   let score = 0
-  for (const [metric, value] of Object.entries(performance)) {
-    const weight = performanceWeights[metric]
-    const grade = performanceGrades[metric]
-    if (value <= grade.good) {
-      score += weight * 100
-    } else if (value <= grade.poor) {
-      score += weight * 50
+  let totalWeight = 0
+  
+  for (const [metric, weight] of Object.entries(performanceMetricsWeight)) {
+    const value = performance[metric]
+    
+    let metricScore = 0
+    const grades = performanceGradeStandard[metric]
+    
+    if (metric === 'cls') {
+      // CLS的得分计算（值越小越好）
+      if (value <= grades.good) metricScore = 100
+      else if (value <= grades.poor) metricScore = 50
+      else metricScore = 0
+    } else {
+      // 其他指标的得分计算（值越小越好）
+      if (value <= grades.good) metricScore = 100
+      else if (value <= grades.poor) metricScore = 50
+      else metricScore = 0
     }
+    
+    score += metricScore * weight
+    totalWeight += weight
   }
-  return Math.round(score)
+  
+  return Math.round(score / totalWeight)
 }
 
-const formatMetricName = (metric) => {
-  const names = {
-    firstContentfulPaint: '首次内容绘制',
-    largestContentfulPaint: '最大内容绘制',
-    timeToInteractive: '可交互时间',
-    totalBlockingTime: '总阻塞时间',
-    cumulativeLayoutShift: '累积布局偏移'
-  }
-  return names[metric] || metric
-}
-
-const formatMetricValue = (metric, value) => {
-  if (metric.includes('LayoutShift')) {
-    return value.toFixed(3)
-  }
-  return `${Math.round(value)}ms`
-}
-
-const getMetricGrade = (metric, value) => {
-  const grade = performanceGrades[metric]
-  if (value <= grade.good) return 'good'
-  if (value <= grade.poor) return 'needs-improvement'
-  return 'poor'
-}
-
-const getScoreColor = (score) => {
-  if (score >= 90) return '#67C23A'
-  if (score >= 50) return '#E6A23C'
-  return '#F56C6C'
-}
-
-const getScoreStyle = (score) => {
-  const color = getScoreColor(score)
-  return {
-    background: `conic-gradient(${color} ${score}%, #f0f0f0 0)`
-  }
-}
-
-const detectProvider = (domain) => {
-  if (domain.includes('aws')) return 'aws'
-  if (domain.includes('google') || domain.includes('gcp')) return 'gcp'
-  if (domain.includes('azure')) return 'azure'
-  return 'unknown'
-}
-
-const detectRegion = (provider) => {
-  if (provider === 'unknown') return 'Unknown'
-  const regions = dataCenterLocations[provider]
-  return regions[Math.floor(Math.random() * regions.length)]
-}
-
-const generateSuggestions = (isGreen, countryData, performance) => {
+// 生成优化建议
+const generateSuggestions = (performance, carbonData) => {
   const suggestions = []
   
-  // 基于碳排放的建议
-  if (!isGreen) {
-    suggestions.push('建议迁移到绿色能源覆盖区域')
-    suggestions.push('考虑使用可再生能源证书')
+  // 页面大小相关建议
+  if (carbonData.pageSize > 3000) {
+    suggestions.push(`减小页面大小，当前页面大小(${carbonData.pageSize}KB)过大，影响加载速度和碳排放`)
   }
-  if (countryData.carbonIntensity > 400) {
-    suggestions.push('建议优化服务器能效')
+  
+  // 性能相关建议
+  if (performance.fcp > 1000) {
+    suggestions.push(`优化首次内容绘制(FCP)，当前值${performance.fcp}ms过高`)
   }
-
-  // 基于性能的建议
-  if (performance.firstContentfulPaint > performanceGrades.firstContentfulPaint.poor) {
-    suggestions.push('优化首次内容绘制时间，减少关键资源加载')
+  
+  if (performance.lcp > 2500) {
+    suggestions.push(`优化最大内容绘制(LCP)，当前值${performance.lcp}ms不满足Core Web Vitals标准`)
   }
-  if (performance.largestContentfulPaint > performanceGrades.largestContentfulPaint.poor) {
-    suggestions.push('优化最大内容绘制时间，优先加载核心内容')
+  
+  if (performance.tti > 3000) {
+    suggestions.push(`优化交互时间(TTI)，当前值${performance.tti}ms过高，影响用户体验`)
   }
-  if (performance.timeToInteractive > performanceGrades.timeToInteractive.poor) {
-    suggestions.push('优化可交互时间，减少JavaScript执行时间')
+  
+  if (performance.tbt > 200) {
+    suggestions.push(`减少总阻塞时间(TBT)，当前值${performance.tbt}ms过高`)
   }
-  if (performance.totalBlockingTime > performanceGrades.totalBlockingTime.poor) {
-    suggestions.push('减少总阻塞时间，优化长任务执行')
+  
+  if (performance.cls > 0.1) {
+    suggestions.push(`减少累积布局偏移(CLS)，当前值${performance.cls}过高，影响视觉稳定性`)
   }
-  if (performance.cumulativeLayoutShift > performanceGrades.cumulativeLayoutShift.poor) {
-    suggestions.push('优化累积布局偏移，确保页面布局稳定')
+  
+  // 碳排放相关建议
+  if (!carbonData.isGreen) {
+    suggestions.push(`考虑使用更多使用绿色能源的数据中心或服务提供商`)
   }
-
+  
+  if (carbonData.totalCarbonEmission > 1.5) {
+    suggestions.push(`当前页面单次访问碳排放(${carbonData.totalCarbonEmission.toFixed(2)}gCO2e)偏高，建议优化`)
+  }
+  
+  if (carbonData.country && carbonIntensityData[carbonData.country]?.carbonIntensity > 400) {
+    suggestions.push(`当前服务器位于碳强度较高的地区(${carbonData.country})，考虑更换到碳强度更低的地区`)
+  }
+  
+  // 静态资源优化建议
+  suggestions.push(`使用CDN分发静态资源，减少数据传输距离和能耗`)
+  
+  // 如果建议太少，添加一些通用建议
+  if (suggestions.length < 3) {
+    suggestions.push(`实施图片懒加载和压缩，减少页面初始加载大小`)
+    suggestions.push(`采用适当的缓存策略，减少重复请求`)
+  }
+  
   return suggestions
 }
 
+// 格式化指标名称
+const formatMetricName = (metric) => {
+  const metricNames = {
+    fcp: '首次内容绘制',
+    lcp: '最大内容绘制',
+    tti: '交互时间',
+    tbt: '总阻塞时间',
+    cls: '累积布局偏移'
+  }
+  return metricNames[metric] || metric
+}
+
+// 格式化指标值
+const formatMetricValue = (metric, value) => {
+  if (metric === 'cls') {
+    return value.toFixed(3)
+  } else {
+    return `${value} ms`
+  }
+}
+
+// 获取指标等级
+const getMetricGrade = (metric, value) => {
+  const grades = performanceGradeStandard[metric]
+  
+  if (metric === 'cls') {
+    if (value <= grades.good) return 'good'
+    if (value <= grades.poor) return 'average'
+    return 'poor'
+  } else {
+    if (value <= grades.good) return 'good'
+    if (value <= grades.poor) return 'average'
+    return 'poor'
+  }
+}
+
+// 获取性能分数样式
+const getScoreStyle = (score) => {
+  let color = '#f56c6c'
+  
+  if (score >= 90) {
+    color = '#67c23a'
+  } else if (score >= 70) {
+    color = '#e6a23c'
+  }
+  
+  return {
+    background: `conic-gradient(${color} ${score * 3.6}deg, #e4e7ed 0deg)`
+  }
+}
+
+// 渲染碳排放热力图
 const renderHeatmap = () => {
   if (!heatmapRef.value || !result.value) return
   
-  // 清空之前的内容
-  heatmapRef.value.innerHTML = ''
+  // 注册需要的组件
+  echarts.use([
+    TitleComponent,
+    TooltipComponent,
+    GridComponent,
+    VisualMapComponent,
+    HeatmapChart,
+    CanvasRenderer
+  ])
   
-  const width = heatmapRef.value.clientWidth || 300
-  const height = 200
-  const svg = d3.select(heatmapRef.value)
-    .append('svg')
-    .attr('width', width)
-    .attr('height', height)
-  
-  // 创建热力图数据
-  const data = []
-  const intensity = result.value.totalCarbonEmission / 1000 // 转换为kgCO2e
-  for (let i = 0; i < 10; i++) {
-    for (let j = 0; j < 10; j++) {
-      data.push({
-        x: i,
-        y: j,
-        value: intensity * (0.8 + Math.random() * 0.4)
-      })
-    }
+  if (heatmapChart) {
+    heatmapChart.dispose()
   }
-
-  // 创建颜色比例尺
-  const colorScale = d3.scaleSequential()
-    .domain([0, 5]) // 0-5 kgCO2e
-    .interpolator(d3.interpolateRdYlGn)
-
-  // 绘制热力图
-  svg.selectAll('rect')
-    .data(data)
-    .enter()
-    .append('rect')
-    .attr('x', d => d.x * (width / 10))
-    .attr('y', d => d.y * (height / 10))
-    .attr('width', width / 10)
-    .attr('height', height / 10)
-    .attr('fill', d => colorScale(d.value))
-    .attr('stroke', 'none')
-    .attr('rx', 2)
-    .attr('ry', 2)
+  
+  heatmapChart = echarts.init(heatmapRef.value)
+  
+  const data = [
+    ['数据传输', '碳排放', result.value.dataTransferCarbon],
+    ['服务器能耗', '碳排放', result.value.serverCarbon],
+    ['网络传输', '碳排放', result.value.networkCarbon],
+    ['客户端能耗', '碳排放', result.value.clientCarbon]
+  ]
+  
+  const option = {
+    tooltip: {
+      position: 'top',
+      formatter: function (params) {
+        return `${params.data[0]}: ${params.data[2].toFixed(2)} gCO2e`
+      }
+    },
+    grid: {
+      top: '0',
+      left: '0',
+      right: '10%',
+      bottom: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: ['碳排放'],
+      position: 'top',
+      splitArea: {
+        show: true
+      },
+      axisLine: {
+        show: false
+      },
+      axisTick: {
+        show: false
+      },
+      axisLabel: {
+        show: false
+      }
+    },
+    yAxis: {
+      type: 'category',
+      data: ['数据传输', '服务器能耗', '网络传输', '客户端能耗'],
+      splitArea: {
+        show: true
+      }
+    },
+    visualMap: {
+      min: 0,
+      max: Math.max(
+        result.value.dataTransferCarbon,
+        result.value.serverCarbon,
+        result.value.networkCarbon,
+        result.value.clientCarbon
+      ) * 1.2,
+      calculable: true,
+      orient: 'horizontal',
+      left: 'center',
+      bottom: '0%',
+      textStyle: {
+        color: '#606266'
+      },
+      inRange: {
+        color: ['#e1f3d8', '#42b883', '#2c7e5c']
+      }
+    },
+    series: [{
+      name: '碳排放量',
+      type: 'heatmap',
+      data: data.map(item => [item[1], item[0], item[2]]),
+      label: {
+        show: true,
+        formatter: function (params) {
+          return params.data[2].toFixed(1)
+        },
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#fff'
+      },
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      }
+    }]
+  }
+  
+  heatmapChart.setOption(option)
+  
+  // 响应式调整
+  window.addEventListener('resize', () => {
+    heatmapChart && heatmapChart.resize()
+  })
 }
+
+// 自动调整图表大小
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    if (heatmapChart) {
+      heatmapChart.resize()
+    }
+  })
+})
 </script>
 
 <style scoped>
@@ -770,5 +1030,146 @@ const renderHeatmap = () => {
 .copyright {
   margin-top: 5px;
   font-size: 12px;
+}
+
+/* 高级选项样式 */
+.advanced-options {
+  margin-top: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  padding: 15px;
+}
+
+.option-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-label {
+  font-weight: 500;
+  color: #606266;
+}
+
+/* 能源图表 */
+.energy-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 15px 0;
+}
+
+.donut-chart {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.donut-hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
+  background: #fff;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 70px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #42b883;
+}
+
+.donut-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.donut-segment {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transform-origin: center;
+}
+
+.renewable {
+  background-color: #42b883;
+}
+
+.fossil {
+  background-color: #e74c3c;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-color {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+}
+
+/* 碳排放总计 */
+.carbon-total {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.total-item {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.total-label {
+  color: #606266;
+}
+
+.total-value {
+  color: #e74c3c;
+}
+
+.total-info {
+  font-size: 12px;
+  color: #909399;
+  text-align: center;
+  margin-top: 5px;
+}
+
+/* 数据分析卡片样式 */
+.data-analysis .details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style> 
