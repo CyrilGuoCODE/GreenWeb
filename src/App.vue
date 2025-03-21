@@ -235,7 +235,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts/core'
 import { HeatmapChart } from 'echarts/charts'
 import {
@@ -268,7 +268,7 @@ import {
   dataTransferEnergyIntensity,
   trafficLevels,
   energyPerVisit
-} from '../data/carbonData'
+} from './data/carbonData'
 
 const domain = ref('')
 const loading = ref(false)
