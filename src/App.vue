@@ -7,7 +7,7 @@
         </div>
         <h1>GreenWeb网站碳中和检测</h1>
       </div>
-      <p class="subtitle">基于先进AI算法评估网站碳排放</p>
+      <p class="subtitle">基于先进算法评估网站碳排放</p>
     </header>
     
     <main class="main-content">
@@ -25,18 +25,7 @@
           </template>
         </el-input>
         <p class="input-hint">例如: baidu.com , bing.com , cloudflare.com</p>
-        
-        <div class="method-info">
-          <h3>智能碳排放评估方法</h3>
-          <p>我们的AI驱动系统通过以下步骤提供精确的碳排放评估：</p>
-          <ol>
-            <li>深度网络流量分析及页面数据传输量精确测量</li>
-            <li>先进算法计算数据传输的能源消耗模型</li>
-            <li>结合全球能源数据库分析碳强度影响</li>
-            <li>评估数据中心能效、冷却系统和可再生能源使用率</li>
-            <li>多维度分析网络传输和用户设备的能源消耗模式</li>
-          </ol>
-        </div>
+
       </div>
 
       <div v-if="loading" class="loading-container">
@@ -224,6 +213,17 @@
                 <span>{{ suggestion }}</span>
               </li>
             </ul>
+          </div>
+          <div class="result-card suggestions">
+            <h3>碳排放评估方法</h3>
+            <p>我们的驱动系统通过以下步骤提供精确的碳排放评估：</p>
+            <ol>
+              <li>深度网络流量分析及页面数据传输量精确测量</li>
+              <li>先进算法计算数据传输的能源消耗模型</li>
+              <li>结合全球能源数据库分析碳强度影响</li>
+              <li>评估数据中心能效、冷却系统和可再生能源使用率</li>
+              <li>多维度分析网络传输和用户设备的能源消耗模式</li>
+            </ol>
           </div>
         </div>
       </div>
@@ -1050,6 +1050,8 @@ onMounted(() => {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+  justify-content: center; /* 水平居中 */
 }
 
 .input-hint {
