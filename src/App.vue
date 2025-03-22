@@ -519,7 +519,7 @@ async function fetchWebsitePerformance(url) {
 
     try {
         //  将这里的 URL 替换成您的 Cloudflare Worker URL
-        const workerUrl = 'https://your-worker-name.your-cloudflare-subdomain.workers.dev/websiteData?url=' + encodeURIComponent(url);
+        const workerUrl = 'https://greenw-api.cyril-0614.workers.dev/websiteData?url=' + encodeURIComponent(url);
         const response = await fetch(workerUrl); // 调用 Cloudflare Worker API
 
         if (!response.ok) {
