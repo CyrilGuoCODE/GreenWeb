@@ -47,15 +47,7 @@
       </div>
 
       <div v-if="result && !loading" class="result-section">
-        <div v-if="result.error" class="error-message">
-          <el-alert
-            title="错误"
-            type="error"
-            :description="result.error"
-            show-icon
-          />
-        </div>
-        <div v-else class="result-summary">
+        <div class="result-summary">
           <div class="summary-card" :class="result.isGreen ? 'green' : 'red'">
             <div class="summary-icon">
               <el-icon :size="40">
@@ -70,7 +62,7 @@
           </div>
         </div>
 
-        <div v-if="result && !loading && !result.error" class="result-grid">
+        <div class="result-grid">
           <div class="result-card energy-source">
             <div class="card-header">
               <h3>能源分析</h3>
@@ -511,147 +503,144 @@ function getRandomLocation(provider) {
   return { region: selectedRegion, country }
 }
 
-// 新增函数：使用 Fetch API 获取网站性能数据
-async function fetchWebsitePerformance(url) {
-    let pageSizeKB = globalConstants.bytesPerPageLoadAverage; // 默认页面大小
-    let loadTime = 0;
-    let fetchMethod = 'Cloudflare Worker'; // 标记为使用 Cloudflare Worker
-
-    try {
-        //  将这里的 URL 替换成您的 Cloudflare Worker URL
-        const workerUrl = 'https://greenw-api.cyril-0614.workers.dev/websiteData?url=' + encodeURIComponent(url);
-        const response = await fetch(workerUrl); // 调用 Cloudflare Worker API
-
-        if (!response.ok) {
-            const errorData = await response.json(); // 尝试解析 JSON 错误响应
-            const errorMessage = errorData.error || `HTTP ${response.status} 错误`; // 获取错误信息
-            console.error('[fetchWebsitePerformance] Cloudflare Worker 请求失败:', errorMessage, errorData.details || '');
-            throw new Error(errorMessage); // 抛出错误，交给 catch 代码块处理
-        }
-
-        const data = await response.json(); // 解析 JSON 响应数据
-        pageSizeKB = data.pageSizeKB !== null ? data.pageSizeKB : globalConstants.bytesPerPageLoadAverage; // 使用 Cloudflare Worker 返回的页面大小，如果为 null 则使用默认值
-        loadTime = data.loadTime || 0; // 使用 Cloudflare Worker 返回的加载时间
-
-        console.log(`[fetchWebsitePerformance] 成功通过 Cloudflare Worker 获取 ${url} 性能数据: 页面大小=${pageSizeKB}KB, 加载时间=${loadTime}s`);
-        return { pageSize: pageSizeKB, loadTime };
-
-    } catch (error) {
-        console.error('[fetchWebsitePerformance] 通过 Cloudflare Worker 获取网站性能数据失败:', error);
-        return { error: `通过 Cloudflare Worker 获取网站性能数据失败: ${error.message || '请稍后重试。'}` }; // 返回包含错误信息的对象
-    }
-}
-
 // 检测碳排放量
 async function checkCarbon() {
   if (!domain.value) return
-
+  
   loading.value = true
   result.value = null
-
+  
   try {
-    // 1. 使用 fetchWebsitePerformance 获取即时性能数据
-    const performanceData = await fetchWebsitePerformance(domain.value);
-
-    if (!performanceData || performanceData.error) { //  检查 performanceData.error 字段
-      loading.value = false; //  确保在错误时停止加载状态
-      result.value = { error: performanceData?.error || '无法获取网站性能数据，请检查域名或稍后重试。' }; // 显示 fetchWebsitePerformance 返回的错误信息，或默认错误信息
-      console.warn('[checkCarbon] fetchWebsitePerformance 返回错误，无法继续计算'); // 警告日志
-      return; //  提前返回，停止后续计算
+    // 显示加载状态一段时间，模拟网页分析过程
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // 1. 智能分析域名确定服务提供商
+    const provider = extractProvider(domain.value)
+    const { region, country } = getRandomLocation(provider)
+    
+    // 2. 计算数据中心是否使用绿色能源及其比例
+    const providerInfo = providerRegions[provider]
+    const useGreenEnergy = Math.random() < providerInfo.renewableChance
+    
+    // 3. 生成合理的可再生能源比例
+    const [minRenewable, maxRenewable] = providerInfo.renewableRange
+    const renewablePercentage = useGreenEnergy ? 
+      Math.floor(Math.random() * (maxRenewable - minRenewable + 1)) + minRenewable : 
+      Math.floor(Math.random() * (minRenewable - 10 + 1)) + 10
+    
+    // 4. 计算数据中心PUE (电能使用效率)
+    const [minPUE, maxPUE] = providerInfo.pueRange
+    const dataCenterPUE = parseFloat((Math.random() * (maxPUE - minPUE) + minPUE).toFixed(2))
+    
+    // 5. 基于域名的特征估算页面类型和大小
+    let estimatedPageType = 'standard'
+    let pageTypeFactor = 1
+    
+    if (domain.value.includes('shop') || domain.value.includes('store') || domain.value.includes('mall')) {
+      estimatedPageType = 'ecommerce'
+      pageTypeFactor = 1.8
+    } else if (domain.value.includes('blog') || domain.value.includes('news') || domain.value.includes('article')) {
+      estimatedPageType = 'blog'
+      pageTypeFactor = 1.5
+    } else if (domain.value.includes('video') || domain.value.includes('media') || domain.value.includes('stream')) {
+      estimatedPageType = 'media'
+      pageTypeFactor = 2.2
+    } else if (domain.value.includes('app') || domain.value.includes('portal') || domain.value.includes('dashboard')) {
+      estimatedPageType = 'webapp'
+      pageTypeFactor = 1.3
     }
-
-    const {
-      pageSize, // 页面大小 (KB)
-      loadTime, // 加载时间 (秒)
-      // serverLocation //  服务器位置信息 (暂时未知)
-    } = performanceData;
-
-    // 2. 智能分析域名确定服务提供商 (保持不变)
-    const provider = extractProvider(domain.value);
-    const { region, country } = getRandomLocation(provider);
-
-    // 3. 计算数据中心是否使用绿色能源及其比例 (保持模拟，实际情况更复杂)
-    const providerInfo = providerRegions[provider];
-    const useGreenEnergy = Math.random() < providerInfo.renewableChance;
-
-    // 4. 生成合理的可再生能源比例 (保持模拟)
-    const [minRenewable, maxRenewable] = providerInfo.renewableRange;
-    const renewablePercentage = useGreenEnergy ?
-      Math.floor(Math.random() * (maxRenewable - minRenewable + 1)) + minRenewable :
-      Math.floor(Math.random() * (minRenewable - 10 + 1)) + 10;
-
-    // 5. 计算数据中心PUE (电能使用效率) (保持模拟)
-    const [minPUE, maxPUE] = providerInfo.pueRange;
-    const dataCenterPUE = parseFloat((Math.random() * (maxPUE - minPUE) + minPUE).toFixed(2));
-
-    // 6. 基于域名的特征估算页面类型和大小 -  使用实际页面大小 (使用 fetch 获取的 pageSize)
-    const estimatedPageType = 'standard'; // 假设默认为标准类型，可以根据工具返回的信息进一步判断
-    const pageSizeKB = pageSize; // 使用 fetch 获取的预估页面大小
-
-    // 7. 数据传输计算 (考虑缓存) - 使用实际页面大小 (使用 fetch 获取的 pageSize)
-    const pageSizeInGB = pageSizeKB / 1024 / 1024;
-    const adjustedPageSizeInGB = pageSizeInGB * (1 - globalConstants.cachingEfficiency);
-
-    // 8. 根据页面类型和大小确定能源强度 (kWh/GB) (保持不变)
-    const baseEnergyIntensity = 1.8;
-    const adjustedEI = baseEnergyIntensity * (1 / providerInfo.serverEfficiency) * dataCenterPUE;
-    const energyIntensity = parseFloat(adjustedEI.toFixed(2));
-
-    // 9. 考虑分别计算数据中心、传输网络和用户设备的能源消耗 (保持不变)
-    const dataCenterEnergy = adjustedPageSizeInGB * (energyIntensity / dataCenterPUE);
-    const transmissionEnergy = adjustedPageSizeInGB * globalConstants.averageTransmissionPerGB;
-    const deviceEnergy = adjustedPageSizeInGB * globalConstants.averageDevicePerGB;
-
-    // 10. 考虑国家电网碳强度 (保持不变)
-    const countryCarbonValue = countryCarbonIntensity[country] || globalConstants.averageCarbonIntensity;
-
-    // 11. 计算碳排放量 (保持不变)
+    
+    // 6. 根据页面类型生成合理的页面大小 (范围：700KB - 6000KB)
+    const baseSize = globalConstants.bytesPerPageLoadAverage
+    const variationFactor = Math.random() * 0.4 + 0.8 // 0.8-1.2的变异因子
+    const pageSize = Math.floor(baseSize * pageTypeFactor * variationFactor)
+    
+    // 7. 数据传输计算 (考虑缓存)
+    const pageSizeInGB = pageSize / 1024 / 1024
+    const adjustedPageSizeInGB = pageSizeInGB * (1 - globalConstants.cachingEfficiency)
+    
+    // 8. 根据页面类型和大小确定能源强度 (kWh/GB)
+    const baseEnergyIntensity = 1.8 // 基础能源强度
+    const adjustedEI = baseEnergyIntensity * (1 / providerInfo.serverEfficiency) * dataCenterPUE
+    const energyIntensity = parseFloat(adjustedEI.toFixed(2))
+    
+    // 9. 考虑分别计算数据中心、传输网络和用户设备的能源消耗
+    const dataCenterEnergy = adjustedPageSizeInGB * (energyIntensity / dataCenterPUE)
+    const transmissionEnergy = adjustedPageSizeInGB * globalConstants.averageTransmissionPerGB
+    const deviceEnergy = adjustedPageSizeInGB * globalConstants.averageDevicePerGB
+    
+    // 10. 考虑国家电网碳强度
+    const countryCarbonValue = countryCarbonIntensity[country] || globalConstants.averageCarbonIntensity
+    
+    // 11. 计算碳排放量
+    // 数据中心碳排放 - 考虑可再生能源比例
     const dataTransferCarbon = dataCenterEnergy * (
-      (renewablePercentage / 100) * globalConstants.greenEnergyCarbonIntensity +
+      (renewablePercentage / 100) * globalConstants.greenEnergyCarbonIntensity + 
       ((100 - renewablePercentage) / 100) * countryCarbonValue
-    );
-
-    const networkCarbon = transmissionEnergy * globalConstants.averageCarbonIntensity;
-    const clientCarbon = deviceEnergy * globalConstants.averageCarbonIntensity;
-    const totalCarbonEmission = dataTransferCarbon + networkCarbon + clientCarbon;
-
-    // 12. 根据域名特征和页面大小估计月访问量 - 保持默认值或尝试从工具获取 (保持不变)
-    const estimatedMonthlyVisits = globalConstants.averageMonthlyVisits;
-
-    // 13. 计算月度和年度碳排放量 (保持不变)
-    const monthlyCarbonEmission = (totalCarbonEmission * estimatedMonthlyVisits) / 1000;
-    const annualCarbonEmission = monthlyCarbonEmission * 12;
-
-    // 14. 计算需要种植多少棵树来抵消碳排放 (保持不变)
-    const treesNeeded = Math.round(annualCarbonEmission / globalConstants.treeCO2PerYear);
-
-    // 15. 生成基于AI分析的性能指标 -  使用工具返回的或继续模拟 (继续模拟，可以考虑未来集成真实性能指标)
-    const performance = { // TODO:  如果工具返回性能指标，则使用工具返回的
-      fcp: Math.random() * 2 + 0.8,
-      lcp: Math.random() * 3 + 1.5,
-      cls: Math.random() * 0.25,
-      fid: Math.random() * 200 + 50,
-      ttfb: Math.random() * 500 + 100
-    };
-
-    // 16. 智能生成针对性优化建议 (保持不变)
+    )
+    
+    // 网络传输和客户设备碳排放 (使用全球平均值)
+    const networkCarbon = transmissionEnergy * globalConstants.averageCarbonIntensity
+    const clientCarbon = deviceEnergy * globalConstants.averageCarbonIntensity
+    
+    // 计算碳排放总量 (单位：g CO2)
+    const totalCarbonEmission = dataTransferCarbon + networkCarbon + clientCarbon
+    
+    // 12. 根据域名特征和页面大小估计月访问量
+    let estimatedMonthlyVisits = globalConstants.averageMonthlyVisits
+    
+    if (domain.value.includes('shop') || domain.value.includes('news')) {
+      estimatedMonthlyVisits *= 2.5
+    } else if (domain.value.includes('blog')) {
+      estimatedMonthlyVisits *= 1.2
+    } else if (domain.value.includes('app')) {
+      estimatedMonthlyVisits *= 3
+    }
+    
+    // 13. 计算月度和年度碳排放量
+    const monthlyCarbonEmission = (totalCarbonEmission * estimatedMonthlyVisits) / 1000 // 单位：kg CO2
+    const annualCarbonEmission = monthlyCarbonEmission * 12
+    
+    // 14. 计算需要种植多少棵树来抵消碳排放
+    const treesNeeded = Math.round(annualCarbonEmission / globalConstants.treeCO2PerYear)
+    
+    // 15. 生成基于AI分析的性能指标
+    // 根据页面大小和类型调整性能预测
+    const sizeFactor = Math.min(pageSize / 3000, 2)
+    const basePerformance = {
+      fcp: 1.2, // 秒
+      lcp: 2.5, // 秒
+      cls: 0.05, // 布局偏移
+      fid: 80, // 毫秒
+      ttfb: 200 // 毫秒
+    }
+    
+    const performance = {
+      fcp: Math.max(0.8, basePerformance.fcp * sizeFactor * (1 + Math.random() * 0.3 - 0.15)),
+      lcp: Math.max(1.5, basePerformance.lcp * sizeFactor * (1 + Math.random() * 0.3 - 0.15)),
+      cls: Math.max(0.01, basePerformance.cls * (1 + Math.random() * 0.4 - 0.2)),
+      fid: Math.max(50, basePerformance.fid * sizeFactor * (1 + Math.random() * 0.3 - 0.15)),
+      ttfb: Math.max(100, basePerformance.ttfb * sizeFactor * (1 + Math.random() * 0.3 - 0.15))
+    }
+    
+    // 16. 智能生成针对性优化建议
     const suggestions = generateOptimizationSuggestions({
       estimatedPageType,
-      pageSize: pageSizeKB,
+      pageSize,
       totalCarbonEmission,
       renewablePercentage,
       performance,
       provider,
       country,
       dataCenterPUE
-    });
-
-    // 设置结果 (保持不变)
+    })
+    
+    // 设置结果
     result.value = {
       provider,
       region,
       country,
-      pageSize: pageSizeKB,
+      pageSize,
       energyIntensity,
       dataCenterEnergy,
       transmissionEnergy,
@@ -669,14 +658,15 @@ async function checkCarbon() {
       suggestions,
       pue: dataCenterPUE,
       estimatedPageType
-    };
-
-    await nextTick(() => {
+    }
+    
+    // 更新UI
+    await nextTick()
+    if (heatmapRef.value) {
       initHeatmap()
-    })
+    }
   } catch (error) {
     console.error('碳排放检测错误:', error)
-    result.value = { error: '碳排放检测过程中发生未知错误，请稍后重试。' }; //  更通用的错误提示
   } finally {
     loading.value = false
   }
@@ -1133,11 +1123,6 @@ onMounted(() => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-/* 错误信息提示 */
-.error-message {
-  margin-bottom: 20px;
 }
 
 /* 结果摘要 */
