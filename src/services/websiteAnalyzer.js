@@ -43,12 +43,11 @@ export async function getServerLocation(domain) {
     return response.data;
   } catch (error) {
     console.error('获取服务器位置失败:', error);
-    // 失败时返回默认值
+    // 失败时返回错误信息
     return { 
-      country: null,
-      region: null,
-      provider: null,
-      error: error.message
+      error: '无法获取服务器位置信息',
+      details: error.message,
+      measurable: false
     };
   }
 }
@@ -67,7 +66,11 @@ export async function getHttpHeaders(url) {
     return response.data;
   } catch (error) {
     console.error('获取HTTP头信息失败:', error);
-    return { error: error.message };
+    return { 
+      error: '无法获取HTTP头信息',
+      details: error.message,
+      measurable: false
+    };
   }
 }
 
@@ -85,10 +88,11 @@ export async function measurePageSize(url) {
     return response.data;
   } catch (error) {
     console.error('测量页面大小失败:', error);
-    // 失败时返回估计值
+    // 失败时返回错误信息
     return { 
-      size: 2300,  // 默认2300KB
-      error: error.message
+      error: '无法测量页面大小',
+      details: error.message,
+      measurable: false
     };
   }
 }
@@ -107,14 +111,11 @@ export async function measurePerformance(url) {
     return response.data;
   } catch (error) {
     console.error('测量性能指标失败:', error);
-    // 失败时返回估计值
+    // 失败时返回错误信息
     return {
-      fcp: 1.2, // 首次内容绘制（秒）
-      lcp: 2.5, // 最大内容绘制（秒）
-      cls: 0.05, // 累积布局偏移
-      fid: 80, // 首次输入延迟（毫秒）
-      ttfb: 200, // 首字节时间（毫秒）
-      error: error.message
+      error: '无法测量性能指标',
+      details: error.message,
+      measurable: false
     };
   }
 }
@@ -133,8 +134,9 @@ export async function analyzeProvider(domain) {
   } catch (error) {
     console.error('分析服务提供商失败:', error);
     return { 
-      provider: 'other',
-      error: error.message
+      error: '无法分析服务提供商',
+      details: error.message,
+      measurable: false
     };
   }
 }
@@ -148,22 +150,18 @@ export async function analyzeWebsite(domain) {
   try {
     // 使用后端的综合分析端点
     const response = await axios.get(`${API_URL}/analyze`, {
-      params: { domain }
+      params: { domain },
+      timeout: 60000 // 增加超时时间到60秒，因为Lighthouse分析可能需要较长时间
     });
     
-    return {
-      url: response.data.url,
-      domain: response.data.domain,
-      provider: response.data.provider?.provider || 'other',
-      location: response.data.location,
-      pageSize: response.data.size?.size || 0,
-      performance: response.data.performance,
-      headers: response.data.headers?.headers || {},
-      timestamp: response.data.timestamp
-    };
+    return response.data;
   } catch (error) {
     console.error('网站分析失败:', error);
-    throw error;
+    return {
+      error: '网站分析失败',
+      details: error.message,
+      measurable: false
+    };
   }
 }
 
@@ -187,6 +185,30 @@ export async function analyzeWebsiteSeparately(domain) {
       analyzeProvider(domain)
     ]);
     
+    // 检查是否有任何请求失败
+    if (locationData.error || headersData.error || sizeData.error || 
+        performanceData.error || providerData.error) {
+      const errors = [];
+      if (locationData.error) errors.push(locationData.error);
+      if (headersData.error) errors.push(headersData.error);
+      if (sizeData.error) errors.push(sizeData.error);
+      if (performanceData.error) errors.push(performanceData.error);
+      if (providerData.error) errors.push(providerData.error);
+      
+      return {
+        url,
+        domain,
+        error: '部分数据获取失败',
+        details: errors.join('; '),
+        measurable: false,
+        location: locationData,
+        provider: providerData.provider || 'unknown',
+        pageSize: sizeData.size,
+        performance: performanceData,
+        headers: headersData.headers
+      };
+    }
+    
     return {
       url,
       domain,
@@ -198,7 +220,11 @@ export async function analyzeWebsiteSeparately(domain) {
     };
   } catch (error) {
     console.error('网站分析失败:', error);
-    throw error;
+    return {
+      error: '网站分析失败',
+      details: error.message,
+      measurable: false
+    };
   }
 }
 

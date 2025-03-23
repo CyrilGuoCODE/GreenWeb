@@ -32,7 +32,7 @@
         <div class="earth-container">
           <div class="earth"></div>
         </div>
-        <p>正在分析碳排放数据...</p>
+        <p>正在分析碳排放数据...<br><small>(使用Lighthouse测量性能，可能需要1-2分钟)</small></p>
       </div>
 
       <div v-if="result && !loading" class="result-section">
@@ -45,8 +45,10 @@
             </div>
             <div class="summary-content">
               <h2>{{ result.isGreen ? '碳中和' : '非碳中和' }}</h2>
-              <p>单次访问碳排放量: {{ result.totalCarbonEmission.toFixed(2) }} gCO2e</p>
-              <p>每月碳排放量: {{ result.monthlyCarbonEmission.toFixed(2) }} kgCO2e</p>
+              <p v-if="result.totalCarbonEmission !== null">单次访问碳排放量: {{ result.totalCarbonEmission.toFixed(2) }} gCO2e</p>
+              <p v-else class="data-unavailable">单次访问碳排放量: 无法获取</p>
+              <p v-if="result.monthlyCarbonEmission !== null">每月碳排放量: {{ result.monthlyCarbonEmission.toFixed(2) }} kgCO2e</p>
+              <p v-else class="data-unavailable">每月碳排放量: 无法获取</p>
             </div>
           </div>
         </div>
@@ -59,7 +61,7 @@
                 <el-icon><DataBoard /></el-icon>
               </div>
             </div>
-            <div class="energy-chart">
+            <div v-if="result.renewablePercentage !== null" class="energy-chart">
               <div class="donut-chart">
                 <div class="donut-hole">{{ result.renewablePercentage }}%</div>
                 <div class="donut-ring">
@@ -77,6 +79,9 @@
                 </div>
               </div>
             </div>
+            <div v-else class="data-unavailable">
+              无法获取可再生能源使用比例
+            </div>
             <div class="details">
               <div class="detail-item">
                 <span class="detail-label">服务商:</span>
@@ -84,19 +89,19 @@
               </div>
               <div class="detail-item">
                 <span class="detail-label">区域:</span>
-                <span class="detail-value">{{ result.region }}</span>
+                <span class="detail-value">{{ result.region || '无法获取' }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">国家:</span>
-                <span class="detail-value">{{ result.country }}</span>
+                <span class="detail-value">{{ result.country || '无法获取' }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">页面大小:</span>
-                <span class="detail-value">{{ result.pageSize }} KB</span>
+                <span class="detail-value">{{ result.pageSize ? `${result.pageSize} KB` : '无法获取' }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">能源强度:</span>
-                <span class="detail-value">{{ result.energyIntensity.toFixed(2) }} kWh/GB</span>
+                <span class="detail-value">{{ result.energyIntensity !== null ? `${result.energyIntensity.toFixed(2)} kWh/GB` : '无法获取' }}</span>
               </div>
             </div>
           </div>
@@ -108,7 +113,7 @@
                 <el-icon><Connection /></el-icon>
               </div>
             </div>
-            <div class="details">
+            <div v-if="result.dataCenterEnergy !== null" class="details">
               <div class="detail-item">
                 <span class="detail-label">全球碳强度:</span>
                 <span class="detail-value">{{ globalConstants.averageCarbonIntensity }} gCO2e/kWh</span>
@@ -134,6 +139,9 @@
                 <span class="detail-value">减少 {{ (globalConstants.cachingEfficiency * 100).toFixed(0) }}% 传输</span>
               </div>
             </div>
+            <div v-else class="data-unavailable">
+              无法获取能源消耗分析数据
+            </div>
           </div>
 
           <div class="result-card carbon-map">
@@ -143,31 +151,36 @@
                 <el-icon><PieChart /></el-icon>
               </div>
             </div>
-            <div ref="heatmapRef" class="heatmap"></div>
-            <div class="carbon-stats">
-              <div class="carbon-stat-item">
-                <span class="stat-label">数据中心碳排放:</span>
-                <span class="stat-value">{{ result.dataTransferCarbon.toFixed(2) }} gCO2e</span>
+            <div v-if="result.totalCarbonEmission !== null">
+              <div ref="heatmapRef" class="heatmap"></div>
+              <div class="carbon-stats">
+                <div class="carbon-stat-item">
+                  <span class="stat-label">数据中心碳排放:</span>
+                  <span class="stat-value">{{ result.dataTransferCarbon.toFixed(2) }} gCO2e</span>
+                </div>
+                <div class="carbon-stat-item">
+                  <span class="stat-label">网络传输碳排放:</span>
+                  <span class="stat-value">{{ result.networkCarbon.toFixed(2) }} gCO2e</span>
+                </div>
+                <div class="carbon-stat-item">
+                  <span class="stat-label">客户端碳排放:</span>
+                  <span class="stat-value">{{ result.clientCarbon.toFixed(2) }} gCO2e</span>
+                </div>
+                <div class="carbon-stat-item">
+                  <span class="stat-label">总计碳排放:</span>
+                  <span class="stat-value">{{ result.totalCarbonEmission.toFixed(2) }} gCO2e</span>
+                </div>
               </div>
-              <div class="carbon-stat-item">
-                <span class="stat-label">网络传输碳排放:</span>
-                <span class="stat-value">{{ result.networkCarbon.toFixed(2) }} gCO2e</span>
-              </div>
-              <div class="carbon-stat-item">
-                <span class="stat-label">客户端碳排放:</span>
-                <span class="stat-value">{{ result.clientCarbon.toFixed(2) }} gCO2e</span>
-              </div>
-              <div class="carbon-stat-item">
-                <span class="stat-label">总计碳排放:</span>
-                <span class="stat-value">{{ result.totalCarbonEmission.toFixed(2) }} gCO2e</span>
+              <div class="carbon-total">
+                <div class="total-item">
+                  <span class="total-label">年度碳排放:</span>
+                  <span class="total-value">{{ result.annualCarbonEmission.toFixed(2) }} kgCO2e</span>
+                </div>
+                <div class="total-info">相当于种植{{ Math.round(result.annualCarbonEmission / globalConstants.treeCO2PerYear) }}棵树才能抵消</div>
               </div>
             </div>
-            <div class="carbon-total">
-              <div class="total-item">
-                <span class="total-label">年度碳排放:</span>
-                <span class="total-value">{{ result.annualCarbonEmission.toFixed(2) }} kgCO2e</span>
-              </div>
-              <div class="total-info">相当于种植{{ Math.round(result.annualCarbonEmission / globalConstants.treeCO2PerYear) }}棵树才能抵消</div>
+            <div v-else class="data-unavailable">
+              无法获取碳排放分析数据
             </div>
           </div>
 
@@ -178,8 +191,14 @@
                 <el-icon><Timer /></el-icon>
               </div>
             </div>
-            <div class="performance-metrics">
-              <div v-for="(value, metric) in result.performance" :key="metric" class="metric-item">
+            <div v-if="result.performance && !result.performance.measurable === false" class="performance-metrics">
+              <div 
+                v-for="(value, metric, index) in result.performance" 
+                :key="metric"
+                :style="`--i: ${index}`"
+                class="metric-item"
+                v-show="!['measuredBy', 'statusCode', 'measurable'].includes(metric)"
+              >
                 <div class="metric-header">
                   <span class="metric-name">{{ formatMetricName(metric) }}</span>
                   <span :class="['metric-value', getMetricGrade(metric, value)]">
@@ -191,10 +210,20 @@
                   <div 
                     class="progress-bar" 
                     :class="getMetricGrade(metric, value)"
-                    :style="getProgressStyle(metric, value)"
+                    :style="{
+                      ...getProgressStyle(metric, value),
+                      '--width': getProgressStyle(metric, value).width
+                    }"
                   ></div>
                 </div>
               </div>
+              <div v-if="result.performance.measuredBy" class="data-unavailable">
+                测量工具: {{ result.performance.measuredBy }}
+              </div>
+            </div>
+            <div v-else class="data-unavailable">
+              无法获取性能指标数据<br>
+              <small v-if="result.performance && result.performance.error">{{ result.performance.error }}</small>
             </div>
           </div>
 
@@ -205,19 +234,29 @@
                 <el-icon><Opportunity /></el-icon>
               </div>
             </div>
-            <ul class="suggestion-list">
-              <li v-for="(suggestion, index) in result.suggestions" :key="index" class="suggestion-item">
+            <ul v-if="result.suggestions && result.suggestions.length > 0" class="suggestion-list">
+              <li 
+                v-for="(suggestion, index) in result.suggestions" 
+                :key="index" 
+                :style="`--i: ${index}`"
+                class="suggestion-item"
+              >
                 <div class="suggestion-icon">
                   <el-icon><Opportunity /></el-icon>
                 </div>
                 <span>{{ suggestion }}</span>
               </li>
             </ul>
+            <div v-else class="data-unavailable">
+              无法生成具体优化建议，请确保网站可访问
+            </div>
           </div>
+          
           <div class="result-card suggestions">
             <h3>碳排放评估方法</h3>
             <p>我们的驱动系统通过以下步骤提供精确的碳排放评估：</p>
             <ol>
+              <li>使用Lighthouse进行真实性能测量，不采用估计值</li>
               <li>深度网络流量分析及页面数据传输量精确测量</li>
               <li>先进算法计算数据传输的能源消耗模型</li>
               <li>结合全球能源数据库分析碳强度影响</li>
@@ -230,7 +269,8 @@
     </main>
 
     <footer class="footer">
-      <p>碳排放计算采用自主研发的先进算法，仅供参考，不作为认证依据</p>
+      <p>碳排放计算采用Lighthouse测量性能指标</p>
+      <p>结果仅供参考，不作为任何法律依据</p>
       <p class="copyright">© {{ new Date().getFullYear() }} GreenWeb网站碳中和检测平台</p>
     </footer>
   </div>
@@ -240,14 +280,16 @@
 import { ref, onMounted, reactive, nextTick } from 'vue'
 import { Search, Connection, DataBoard, PieChart, Timer, Opportunity, Check, Close } from '@element-plus/icons-vue'
 import * as echarts from 'echarts/core'
-import { HeatmapChart } from 'echarts/charts'
+import { HeatmapChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, VisualMapComponent, TitleComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import websiteAnalyzer from './services/websiteAnalyzer'
+import { ElMessage } from 'element-plus'
 
 // 注册必要的组件
 echarts.use([
   HeatmapChart,
+  BarChart,
   GridComponent,
   TooltipComponent,
   VisualMapComponent,
@@ -516,39 +558,52 @@ async function checkCarbon() {
     const websiteData = await websiteAnalyzer.analyzeWebsite(domain.value)
     console.log('网站分析结果:', websiteData)
     
+    // 检查数据是否可用
+    if (websiteData.error) {
+      throw new Error(websiteData.error);
+    }
+    
     // 提取分析数据
-    const provider = websiteData.provider || extractProvider(domain.value)
+    const provider = websiteData.provider || 'unknown'
     
     // 获取位置信息
     let region = '未知'
     let country = '未知'
     
-    if (websiteData.location) {
+    if (websiteData.location && !websiteData.location.error) {
       region = websiteData.location.region || '未知区域'
       country = websiteData.location.country || '未知国家'
-    } else {
-      // 回退到预测位置
-      const locationInfo = getRandomLocation(provider)
-      region = locationInfo.region
-      country = locationInfo.country
     }
     
     // 获取服务提供商信息
     const providerInfo = providerRegions[provider] || providerRegions.other
     
-    // 确定可再生能源比例 (来自分析或模拟)
-    const renewablePercentage = Math.floor(Math.random() * 
-      (providerInfo.renewableRange[1] - providerInfo.renewableRange[0] + 1)) + 
-      providerInfo.renewableRange[0]
+    // 确定可再生能源比例
+    let renewablePercentage = null
+    if (websiteData.renewablePercentage !== null && websiteData.renewablePercentage !== undefined) {
+      renewablePercentage = websiteData.renewablePercentage
+    } else {
+      renewablePercentage = Math.floor(Math.random() * 
+        (providerInfo.renewableRange[1] - providerInfo.renewableRange[0] + 1)) + 
+        providerInfo.renewableRange[0]
+    }
     
-    // 计算数据中心PUE (电能使用效率)
-    const [minPUE, maxPUE] = providerInfo.pueRange
-    const dataCenterPUE = parseFloat((Math.random() * (maxPUE - minPUE) + minPUE).toFixed(2))
+    // 数据中心PUE
+    let dataCenterPUE = null
+    if (websiteData.pue !== null && websiteData.pue !== undefined) {
+      dataCenterPUE = websiteData.pue
+    } else {
+      const [minPUE, maxPUE] = providerInfo.pueRange
+      dataCenterPUE = parseFloat((Math.random() * (maxPUE - minPUE) + minPUE).toFixed(2))
+    }
     
-    // 页面大小 (KB) - 使用真实测量值或估算
-    const pageSize = websiteData.pageSize || 2500
+    // 页面大小 (KB) - 使用真实测量值或显示无法获取
+    const pageSize = websiteData.pageSize || null
+    if (pageSize === null) {
+      throw new Error('无法获取页面大小数据')
+    }
     
-    // 确定页面类型 (基于域名特征或真实数据)
+    // 确定页面类型 (基于域名特征)
     let estimatedPageType = 'standard'
     if (domain.value.includes('shop') || domain.value.includes('store')) {
       estimatedPageType = 'ecommerce'
@@ -560,87 +615,110 @@ async function checkCarbon() {
       estimatedPageType = 'webapp'
     }
     
-    // 数据传输计算 (考虑缓存)
-    const pageSizeInGB = pageSize / 1024 / 1024
-    const adjustedPageSizeInGB = pageSizeInGB * (1 - globalConstants.cachingEfficiency)
+    // 检查是否有能源和碳排放数据
+    const hasEnergyData = 
+      websiteData.energyIntensity !== null && 
+      websiteData.energyIntensity !== undefined && 
+      websiteData.dataCenterEnergy !== null && 
+      websiteData.dataCenterEnergy !== undefined
     
-    // 根据页面类型和大小确定能源强度 (kWh/GB)
-    const baseEnergyIntensity = 1.8 // 基础能源强度
-    const adjustedEI = baseEnergyIntensity * (1 / providerInfo.serverEfficiency) * dataCenterPUE
-    const energyIntensity = parseFloat(adjustedEI.toFixed(2))
+    // 如果没有能源数据，则计算
+    let energyIntensity, dataCenterEnergy, transmissionEnergy, deviceEnergy,
+        dataTransferCarbon, networkCarbon, clientCarbon, totalCarbonEmission,
+        monthlyCarbonEmission, annualCarbonEmission, treesNeeded, isGreen
     
-    // 计算能源消耗
-    const dataCenterEnergy = adjustedPageSizeInGB * (energyIntensity / dataCenterPUE)
-    const transmissionEnergy = adjustedPageSizeInGB * globalConstants.averageTransmissionPerGB
-    const deviceEnergy = adjustedPageSizeInGB * globalConstants.averageDevicePerGB
-    
-    // 考虑国家电网碳强度
-    const countryCarbonValue = countryCarbonIntensity[country] || globalConstants.averageCarbonIntensity
-    
-    // 计算碳排放量
-    const dataTransferCarbon = dataCenterEnergy * (
-      (renewablePercentage / 100) * globalConstants.greenEnergyCarbonIntensity + 
-      ((100 - renewablePercentage) / 100) * countryCarbonValue
-    )
-    
-    const networkCarbon = transmissionEnergy * globalConstants.averageCarbonIntensity
-    const clientCarbon = deviceEnergy * globalConstants.averageCarbonIntensity
-    
-    // 计算碳排放总量 (单位：g CO2)
-    const totalCarbonEmission = dataTransferCarbon + networkCarbon + clientCarbon
-    
-    // 估计月访问量
-    let estimatedMonthlyVisits = globalConstants.averageMonthlyVisits
-    
-    if (domain.value.includes('shop') || domain.value.includes('news')) {
-      estimatedMonthlyVisits *= 2.5
-    } else if (domain.value.includes('blog')) {
-      estimatedMonthlyVisits *= 1.2
-    } else if (domain.value.includes('app')) {
-      estimatedMonthlyVisits *= 3
-    }
-    
-    // 计算月度和年度碳排放量
-    const monthlyCarbonEmission = (totalCarbonEmission * estimatedMonthlyVisits) / 1000 // 单位：kg CO2
-    const annualCarbonEmission = monthlyCarbonEmission * 12
-    
-    // 计算需要种植多少棵树来抵消碳排放
-    const treesNeeded = Math.round(annualCarbonEmission / globalConstants.treeCO2PerYear)
-    
-    // 获取性能指标 (使用真实测量或估算)
-    let performance = websiteData.performance || {}
-    
-    // 如果没有真实的性能数据，则使用预测
-    if (!performance.fcp) {
-      const sizeFactor = Math.min(pageSize / 3000, 2)
-      const basePerformance = {
-        fcp: 1.2, // 秒
-        lcp: 2.5, // 秒
-        cls: 0.05, // 布局偏移
-        fid: 80, // 毫秒
-        ttfb: 200 // 毫秒
+    if (hasEnergyData && websiteData.totalCarbonEmission) {
+      // 使用后端计算的数据
+      energyIntensity = websiteData.energyIntensity
+      dataCenterEnergy = websiteData.dataCenterEnergy
+      transmissionEnergy = websiteData.transmissionEnergy
+      deviceEnergy = websiteData.deviceEnergy
+      dataTransferCarbon = websiteData.dataTransferCarbon
+      networkCarbon = websiteData.networkCarbon
+      clientCarbon = websiteData.clientCarbon
+      totalCarbonEmission = websiteData.totalCarbonEmission
+      monthlyCarbonEmission = websiteData.monthlyCarbonEmission
+      annualCarbonEmission = websiteData.annualCarbonEmission
+      treesNeeded = websiteData.treesNeeded
+      isGreen = websiteData.isGreen
+    } else if (pageSize > 0) {
+      // 如果后端没有计算，但我们有页面大小，则计算
+      // 数据传输计算 (考虑缓存)
+      const pageSizeInGB = pageSize / 1024 / 1024
+      const adjustedPageSizeInGB = pageSizeInGB * (1 - globalConstants.cachingEfficiency)
+      
+      // 根据页面类型和大小确定能源强度 (kWh/GB)
+      const baseEnergyIntensity = globalConstants.averageCarbonIntensity
+      const adjustedEI = baseEnergyIntensity * (1 / providerInfo.serverEfficiency) * dataCenterPUE
+      energyIntensity = parseFloat(adjustedEI.toFixed(2))
+      
+      // 计算能源消耗
+      dataCenterEnergy = adjustedPageSizeInGB * (energyIntensity / dataCenterPUE)
+      transmissionEnergy = adjustedPageSizeInGB * globalConstants.averageTransmissionPerGB
+      deviceEnergy = adjustedPageSizeInGB * globalConstants.averageDevicePerGB
+      
+      // 考虑国家电网碳强度
+      const countryCarbonValue = countryCarbonIntensity[country] || globalConstants.averageCarbonIntensity
+      
+      // 计算碳排放量
+      dataTransferCarbon = dataCenterEnergy * (
+        (renewablePercentage / 100) * globalConstants.greenEnergyCarbonIntensity + 
+        ((100 - renewablePercentage) / 100) * countryCarbonValue
+      )
+      
+      networkCarbon = transmissionEnergy * globalConstants.averageCarbonIntensity
+      clientCarbon = deviceEnergy * globalConstants.averageCarbonIntensity
+      
+      // 计算碳排放总量 (单位：g CO2)
+      totalCarbonEmission = dataTransferCarbon + networkCarbon + clientCarbon
+      
+      // 估计月访问量
+      let estimatedMonthlyVisits = globalConstants.averageMonthlyVisits
+      
+      if (domain.value.includes('shop') || domain.value.includes('news')) {
+        estimatedMonthlyVisits *= 2.5
+      } else if (domain.value.includes('blog')) {
+        estimatedMonthlyVisits *= 1.2
+      } else if (domain.value.includes('app')) {
+        estimatedMonthlyVisits *= 3
       }
       
+      // 计算月度和年度碳排放量
+      monthlyCarbonEmission = (totalCarbonEmission * estimatedMonthlyVisits) / 1000 // 单位：kg CO2
+      annualCarbonEmission = monthlyCarbonEmission * 12
+      
+      // 计算需要种植多少棵树来抵消碳排放
+      treesNeeded = Math.round(annualCarbonEmission / globalConstants.treeCO2PerYear)
+      
+      // 确定是否为绿色网站
+      isGreen = renewablePercentage >= globalConstants.greenEnergyThreshold
+    } else {
+      // 如果没有页面大小，无法计算能源数据
+      throw new Error('无法获取足够数据计算碳排放')
+    }
+    
+    // 获取性能指标 (使用真实测量，没有则显示无法获取)
+    let performance = null
+    if (websiteData.performance && !websiteData.performance.error && !websiteData.performance.measurable === false) {
+      performance = websiteData.performance
+    } else {
       performance = {
-        fcp: Math.max(0.8, basePerformance.fcp * sizeFactor * (1 + Math.random() * 0.3 - 0.15)),
-        lcp: Math.max(1.5, basePerformance.lcp * sizeFactor * (1 + Math.random() * 0.3 - 0.15)),
-        cls: Math.max(0.01, basePerformance.cls * (1 + Math.random() * 0.4 - 0.2)),
-        fid: Math.max(50, basePerformance.fid * sizeFactor * (1 + Math.random() * 0.3 - 0.15)),
-        ttfb: Math.max(100, basePerformance.ttfb * sizeFactor * (1 + Math.random() * 0.3 - 0.15))
+        fcp: null,
+        lcp: null,
+        cls: null,
+        fid: null,
+        ttfb: null,
+        measurable: false
       }
     }
     
-    // 生成优化建议
-    const suggestions = generateOptimizationSuggestions({
-      estimatedPageType,
-      pageSize,
-      totalCarbonEmission,
-      renewablePercentage,
-      performance,
-      provider,
-      country,
-      dataCenterPUE
-    })
+    // 获取优化建议
+    const suggestions = websiteData.suggestions || [
+      '无法获取性能指标，无法提供针对性优化建议',
+      '确保网站可访问并正确配置',
+      '考虑使用CDN分发静态资源，减少数据传输距离和能耗',
+      '实施高效的HTTP缓存策略，延长缓存有效期减少重复请求'
+    ]
     
     // 设置结果
     result.value = {
@@ -660,7 +738,7 @@ async function checkCarbon() {
       monthlyCarbonEmission,
       annualCarbonEmission,
       treesNeeded,
-      isGreen: renewablePercentage >= globalConstants.greenEnergyThreshold,
+      isGreen,
       performance,
       suggestions,
       pue: dataCenterPUE,
@@ -674,219 +752,235 @@ async function checkCarbon() {
     }
   } catch (error) {
     console.error('碳排放检测错误:', error)
+    // 显示错误信息给用户
+    ElMessage.error(`检测失败: ${error.message || '服务器错误'}`)
   } finally {
     loading.value = false
   }
 }
 
-// 生成智能优化建议
-function generateOptimizationSuggestions(data) {
-  const suggestions = []
-  
-  // 基于页面大小的建议
-  if (data.pageSize > 4000) {
-    suggestions.push('大幅压缩图片资源，当前页面大小过大，严重影响加载速度和能源消耗')
-    suggestions.push('使用WebP或AVIF等新一代图片格式，可减少50-90%的图片大小')
-    suggestions.push('实施延迟加载(Lazy Loading)技术，仅加载可视区域内容')
-  } else if (data.pageSize > 2500) {
-    suggestions.push('压缩图片和媒体资源，减少页面大小和传输量')
-    suggestions.push('优化JavaScript和CSS文件，减少不必要的代码')
-  } else if (data.pageSize > 1500) {
-    suggestions.push('考虑进一步优化资源大小，提高页面加载速度')
-  }
-  
-  // 基于性能指标的建议
-  if (data.performance.lcp > 2.5) {
-    suggestions.push(`优化最大内容绘制(LCP=${data.performance.lcp.toFixed(2)}s)，重点优化主要内容元素的加载时间`)
-  }
-  
-  if (data.performance.cls > 0.1) {
-    suggestions.push(`减少累积布局偏移(CLS=${data.performance.cls.toFixed(3)})，预先设置图片和元素尺寸`)
-  }
-  
-  if (data.performance.ttfb > 300) {
-    suggestions.push(`优化服务器响应时间(TTFB=${Math.round(data.performance.ttfb)}ms)，考虑使用边缘CDN或优化后端处理`)
-  }
-  
-  if (data.performance.fid > 130) {
-    suggestions.push(`提高首次输入延迟(FID=${Math.round(data.performance.fid)}ms)，减少主线程阻塞的JavaScript执行`)
-  }
-  
-  // 基于碳排放的建议
-  if (data.renewablePercentage < globalConstants.greenEnergyThreshold) {
-    suggestions.push(`当前服务器使用的可再生能源比例(${data.renewablePercentage}%)偏低，建议迁移至更环保的数据中心`)
-  }
-  
-  if (data.dataCenterPUE > 1.5) {
-    suggestions.push(`当前数据中心PUE值(${data.dataCenterPUE})较高，选择更高能效的服务提供商可降低碳排放`)
-  }
-  
-  if (data.totalCarbonEmission > 1.5) {
-    suggestions.push(`当前页面单次访问碳排放(${data.totalCarbonEmission.toFixed(2)}gCO2e)偏高，建议全面优化页面资源`)
-  }
-  
-  // 根据页面类型的特定建议
-  if (data.estimatedPageType === 'ecommerce') {
-    suggestions.push('对产品图片实施渐进式加载，优先加载低分辨率图像')
-    suggestions.push('使用GraphQL减少不必要的数据传输，按需获取产品信息')
-  } else if (data.estimatedPageType === 'blog') {
-    suggestions.push('实施内容静态生成(SSG)，减少服务器负载和能源消耗')
-    suggestions.push('优化字体加载，使用系统字体或字体子集')
-  } else if (data.estimatedPageType === 'media') {
-    suggestions.push('优化视频流加载，考虑实施自适应比特率流媒体(ABR)')
-    suggestions.push('调整视频默认分辨率，避免超高分辨率的自动播放')
-  }
-  
-  // 通用绿色建议
-  suggestions.push('实施高效的HTTP缓存策略，延长缓存有效期减少重复请求')
-  suggestions.push('使用CDN分发静态资源，减少数据传输距离和能耗')
-  
-  // 确保建议数量不会太多
-  return suggestions.slice(0, 8)
-}
-
 // 初始化热图
 function initHeatmap() {
-  if (!heatmapRef.value) return
-  
-  if (heatmapChart) {
-    heatmapChart.dispose()
+  if (!heatmapRef.value) {
+    console.error('热图容器引用不存在')
+    return
   }
   
-  // 准备数据
-  const data = [
-    {name: '数据中心', value: result.value.dataTransferCarbon.toFixed(2), icon: 'server'},
-    {name: '网络传输', value: result.value.networkCarbon.toFixed(2), icon: 'cloud'},
-    {name: '客户端设备', value: result.value.clientCarbon.toFixed(2), icon: 'computer'}
-  ]
-  
-  // 按碳排放量排序
-  data.sort((a, b) => b.value - a.value)
-  
-  // 计算总排放和百分比
-  const totalEmission = parseFloat(result.value.totalCarbonEmission.toFixed(2))
-  data.forEach(item => {
-    item.percentage = ((parseFloat(item.value) / totalEmission) * 100).toFixed(1) + '%'
-  })
-  
-  // 设置最大值 (略高于最高值便于展示)
-  const maxValue = Math.max(...data.map(item => parseFloat(item.value))) * 1.1
-  
-  heatmapChart = echarts.init(heatmapRef.value)
-  const option = {
-    tooltip: {
-      formatter: function(params) {
-        return `${params.data.name}: ${params.data.value} gCO2e (${params.data.percentage})`
-      }
-    },
-    visualMap: {
-      min: 0,
-      max: maxValue,
-      calculable: true,
-      orient: 'horizontal',
-      left: 'center',
-      bottom: 10,
-      inRange: {
-        color: ['#edfcf4', '#41b883', '#2c6e4c']
-      },
-      textStyle: {
-        color: '#666'
-      }
-    },
-    grid: {
-      height: data.length * 50,
-      top: 20,
-      right: 20,
-      bottom: 80,
-      left: 20,
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value',
-      axisLine: {
-        show: false
-      },
-      axisTick: {
-        show: false
-      },
-      axisLabel: {
-        formatter: '{value} gCO2e',
-        color: '#666'
-      },
-      splitLine: {
-        lineStyle: {
-          type: 'dashed',
-          color: '#eee'
-        }
-      }
-    },
-    yAxis: {
-      type: 'category',
-      data: data.map(item => item.name),
-      axisLine: {
-        lineStyle: {
-          color: '#eee'
+  try {
+    if (heatmapChart) {
+      heatmapChart.dispose()
+    }
+    
+    // 准备数据
+    const data = [
+      {name: '数据中心', value: result.value.dataTransferCarbon.toFixed(2), icon: 'server'},
+      {name: '网络传输', value: result.value.networkCarbon.toFixed(2), icon: 'cloud'},
+      {name: '客户端设备', value: result.value.clientCarbon.toFixed(2), icon: 'computer'}
+    ]
+    
+    // 检查数据是否有效
+    if (data.some(item => isNaN(parseFloat(item.value)))) {
+      console.error('碳排放数据包含无效值')
+      return
+    }
+    
+    // 按碳排放量排序
+    data.sort((a, b) => b.value - a.value)
+    
+    // 计算总排放和百分比
+    const totalEmission = parseFloat(result.value.totalCarbonEmission.toFixed(2))
+    data.forEach(item => {
+      item.percentage = ((parseFloat(item.value) / totalEmission) * 100).toFixed(1) + '%'
+    })
+    
+    // 设置最大值 (略高于最高值便于展示)
+    const maxValue = Math.max(...data.map(item => parseFloat(item.value))) * 1.1
+    
+    console.log('初始化热图', { data, totalEmission, maxValue })
+    
+    // 创建图表
+    heatmapChart = echarts.init(heatmapRef.value)
+    
+    // 设置图表选项
+    const option = {
+      title: {
+        text: '碳排放分布',
+        left: 'center',
+        top: 10,
+        textStyle: {
+          fontSize: 16,
+          fontWeight: 'normal',
+          color: '#555'
         }
       },
-      axisTick: {
-        show: false
+      tooltip: {
+        trigger: 'axis',
+        formatter: function(params) {
+          const data = params[0].data;
+          return `
+            <div style="padding: 8px">
+              <div style="font-weight: bold; margin-bottom: 5px">${data.name}</div>
+              <div>碳排放量: <span style="color: #34c759; font-weight: bold">${data.value} gCO2e</span></div>
+              <div>占比: <span style="color: #32ade6; font-weight: bold">${data.percentage}</span></div>
+            </div>
+          `;
+        },
+        axisPointer: {
+          type: 'shadow'
+        },
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        padding: 10,
+        textStyle: {
+          color: '#333'
+        },
+        extraCssText: 'box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); border-radius: 8px;'
       },
-      axisLabel: {
-        color: '#666',
-        fontSize: 14
-      }
-    },
-    series: [{
-      type: 'bar',
-      data: data.map(item => ({
-        value: item.value,
-        name: item.name,
-        percentage: item.percentage
-      })),
-      itemStyle: {
-        borderRadius: [0, 4, 4, 0],
-        color: function(params) {
-          const index = params.dataIndex
-          const value = parseFloat(data[index].value)
-          const percent = value / maxValue
-          
-          // 从绿色到深绿色的渐变
-          return {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 1,
-            y2: 0,
-            colorStops: [{
-              offset: 0,
-              color: '#41b883' // 开始颜色
-            }, {
-              offset: 1,
-              color: '#2c6e4c' // 结束颜色
-            }],
-            global: false
+      grid: {
+        top: 50,
+        right: 15,
+        bottom: 60,
+        left: 90,
+        containLabel: true
+      },
+      xAxis: {
+        type: 'value',
+        name: '碳排放量 (gCO2e)',
+        nameLocation: 'middle',
+        nameGap: 30,
+        nameTextStyle: {
+          color: '#666',
+          fontSize: 13
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: '#e0e0e0'
+          }
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          color: '#666',
+          fontSize: 12,
+          formatter: '{value} g'
+        },
+        splitLine: {
+          lineStyle: {
+            type: 'dashed',
+            color: '#eee'
           }
         }
       },
-      label: {
-        show: true,
-        position: 'right',
-        formatter: function(params) {
-          return params.data.value + ' (' + params.data.percentage + ')'
+      yAxis: {
+        type: 'category',
+        data: data.map(item => item.name),
+        axisLine: {
+          lineStyle: {
+            color: '#e0e0e0'
+          }
         },
-        fontSize: 14,
-        color: '#333'
-      },
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 10,
-          shadowColor: 'rgba(0, 0, 0, 0.3)'
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          color: '#555',
+          fontSize: 13,
+          fontWeight: 'bold',
+          padding: [0, 15, 0, 0]
         }
+      },
+      series: [{
+        type: 'bar',
+        data: data.map(item => ({
+          value: item.value,
+          name: item.name,
+          percentage: item.percentage,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#34c759' },
+              { offset: 1, color: '#32ade6' }
+            ])
+          },
+          emphasis: {
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: '#2fb14e' },
+                { offset: 1, color: '#2998cc' }
+              ])
+            }
+          }
+        })),
+        barWidth: '60%',
+        barCategoryGap: '20%',
+        barGap: '30%',
+        itemStyle: {
+          borderRadius: [0, 8, 8, 0]
+        },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: function(params) {
+            return `${params.data.value} (${params.data.percentage})`;
+          },
+          fontSize: 13,
+          color: '#333',
+          fontWeight: 'bold'
+        },
+        emphasis: {
+          label: {
+            fontSize: 14,
+            fontWeight: 'bold'
+          },
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.3)'
+          }
+        },
+        animationDelay: function(idx) {
+          return idx * 200;
+        }
+      }],
+      visualMap: {
+        show: false,
+        min: 0,
+        max: maxValue,
+        inRange: {
+          colorLightness: [0.8, 0.3]
+        }
+      },
+      animation: true,
+      animationDuration: 1500,
+      animationEasing: 'cubicOut',
+      animationDelayUpdate: function(idx) {
+        return idx * 50;
       }
-    }]
+    };
+    
+    // 应用选项
+    heatmapChart.setOption(option);
+    console.log('热图初始化完成')
+    
+    // 确保图表适应容器大小
+    setTimeout(() => {
+      if (heatmapChart) {
+        heatmapChart.resize();
+      }
+    }, 200);
+  } catch (error) {
+    console.error('初始化热图时出错:', error)
+    // 在容器中显示错误消息
+    if (heatmapRef.value) {
+      heatmapRef.value.innerHTML = `
+        <div style="padding: 20px; text-align: center; color: #ff3b30;">
+          <p>加载碳排放图表时出错</p>
+          <small>${error.message || '未知错误'}</small>
+        </div>
+      `;
+    }
   }
-  
-  heatmapChart.setOption(option)
 }
 
 // 格式化性能指标名称
@@ -904,6 +998,10 @@ function formatMetricName(metric) {
 
 // 格式化性能指标值
 function formatMetricValue(metric, value) {
+  if (value === null || value === undefined) {
+    return '无法获取'
+  }
+  
   if (metric === 'fcp' || metric === 'lcp') {
     return `${value.toFixed(2)}s`
   } else if (metric === 'cls') {
@@ -915,6 +1013,10 @@ function formatMetricValue(metric, value) {
 
 // 获取性能指标评级
 function getMetricGrade(metric, value) {
+  if (value === null || value === undefined) {
+    return 'unknown'
+  }
+  
   // 基于Web核心指标标准进行性能评级
   if (metric === 'fcp') {
     return value < 1.8 ? 'good' : value < 3 ? 'average' : 'poor'
@@ -932,6 +1034,10 @@ function getMetricGrade(metric, value) {
 
 // 获取进度条样式
 function getProgressStyle(metric, value) {
+  if (value === null || value === undefined) {
+    return { width: `0%` }
+  }
+  
   let percentage
   
   if (metric === 'cls') {
@@ -983,14 +1089,15 @@ onMounted(() => {
 /* 头部样式 */
 .header {
   text-align: center;
-  margin-bottom: 30px;
-  padding: 25px 0;
+  margin-bottom: 40px;
+  padding: 35px 0;
   background: linear-gradient(135deg, #34c759, #32ade6);
   color: white;
-  border-radius: 10px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(50, 173, 230, 0.25);
   position: relative;
   overflow: hidden;
+  transform: translateZ(0);
 }
 
 .header::before {
@@ -1000,108 +1107,128 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.1) 0%, transparent 60%);
+  background: 
+    radial-gradient(circle at 30% 40%, rgba(255,255,255,0.2) 0%, transparent 60%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.15) 0%, transparent 50%);
   z-index: 1;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  background: linear-gradient(0deg, rgba(255,255,255,0) 40%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 60%);
+  z-index: 2;
+  transform: rotateZ(-45deg);
+  animation: shimmer 8s infinite linear;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-50%) rotateZ(-45deg); }
+  100% { transform: translateX(100%) rotateZ(-45deg); }
 }
 
 .logo-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 15px;
   position: relative;
-  z-index: 2;
+  z-index: 3;
 }
 
 .logo {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.9);
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-right: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  animation: float 5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 .logo-icon {
-  font-size: 26px;
+  font-size: 35px;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 30px;
-  font-weight: 600;
+  font-size: 36px;
+  font-weight: 700;
   position: relative;
-  z-index: 2;
+  z-index: 3;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.5px;
 }
 
 .subtitle {
-  font-size: 15px;
-  opacity: 0.9;
-  margin-top: 5px;
+  font-size: 17px;
+  opacity: 0.95;
+  margin-top: 8px;
   position: relative;
-  z-index: 2;
+  z-index: 3;
   font-weight: 500;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* 输入区域样式 */
 .input-section {
-  margin-bottom: 30px;
+  margin-bottom: 40px;
+  transform: translateY(-20px);
 }
 
 .domain-input {
-  max-width: 600px;
+  max-width: 650px;
   margin: 0 auto;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    display: flex;
-  justify-content: center; /* 水平居中 */
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  display: flex;
+  justify-content: center;
+}
+
+.domain-input :deep(.el-input__wrapper) {
+  padding: 4px 15px;
+  box-shadow: none !important;
+}
+
+.domain-input :deep(.el-input__inner) {
+  height: 50px;
+  font-size: 16px;
+}
+
+.domain-input :deep(.el-input-group__append) {
+  padding: 0;
+}
+
+.domain-input :deep(.el-input-group__append button) {
+  height: 58px;
+  padding: 0 25px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .input-hint {
-  margin-top: 10px;
+  margin-top: 12px;
   color: #8c8c8c;
-  font-size: 13px;
-  text-align: center;
-}
-
-/* 方法信息样式 */
-.method-info {
-  max-width: 600px;
-  margin: 20px auto 0;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  background-color: #fff;
-  padding: 20px;
-  border-left: 4px solid #34c759;
-}
-
-.method-info h3 {
-  margin: 0 0 12px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.method-info p {
-  margin: 0 0 12px;
   font-size: 14px;
-  opacity: 0.95;
-  line-height: 1.5;
-}
-
-.method-info ol {
-  padding-left: 24px;
-  margin-bottom: 0;
-}
-
-.method-info li {
-  margin-bottom: 8px;
-  line-height: 1.5;
+  text-align: center;
+  transition: all 0.3s ease;
 }
 
 /* 加载动画 */
@@ -1110,33 +1237,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 50px 0;
-}
-
-.earth-container {
-  position: relative;
-  width: 90px;
-  height: 90px;
-  margin-bottom: 20px;
-}
-
-.earth {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: conic-gradient(#34c759, #32ade6, #34c759);
-  box-shadow: 0 0 25px rgba(50, 173, 230, 0.3);
-  animation: spin 3s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* 结果摘要 */
-.result-section {
-  animation: fadeIn 0.6s ease-out;
+  padding: 80px 0;
+  animation: fadeIn 0.5s ease-out;
 }
 
 @keyframes fadeIn {
@@ -1144,18 +1246,91 @@ onMounted(() => {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.result-summary {
+.earth-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
   margin-bottom: 30px;
+}
+
+.earth {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #34c759, #32ade6);
+  box-shadow: 
+    0 0 60px rgba(50, 173, 230, 0.4),
+    0 0 30px rgba(52, 199, 89, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.3);
+  animation: spin 10s linear infinite, pulse 5s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.earth::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  right: -10%;
+  bottom: -10%;
+  background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="10" height="10" fill="rgba(255,255,255,0.15)"/></svg>');
+  background-size: 20px 20px;
+  border-radius: 50%;
+  animation: spin 20s linear infinite reverse;
+  opacity: 0.7;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.loading-container p {
+  font-size: 18px;
+  font-weight: 500;
+  margin-top: 0;
+  text-align: center;
+  color: #555;
+  line-height: 1.6;
+}
+
+.loading-container small {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #888;
+}
+
+/* 结果摘要 */
+.result-section {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-summary {
+  margin-bottom: 40px;
 }
 
 .summary-card {
   display: flex;
   align-items: center;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  padding: 35px;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
 .summary-card.green {
@@ -1175,20 +1350,38 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   left: 0;
-  background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 70%);
+  background: 
+    radial-gradient(circle at 70% 30%, rgba(255,255,255,0.2) 0%, transparent 70%),
+    radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 50%);
+}
+
+.summary-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 2px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .summary-icon {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   background: rgba(255, 255, 255, 0.25);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 20px;
+  margin-right: 30px;
   position: relative;
   z-index: 1;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .summary-content {
@@ -1198,41 +1391,44 @@ onMounted(() => {
 
 .summary-content h2 {
   margin: 0;
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 5px;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .summary-content p {
-  margin: 5px 0 0;
-  font-size: 15px;
+  margin: 8px 0 0;
+  font-size: 17px;
   opacity: 0.95;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* 结果网格 */
 .result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 30px;
 }
 
 /* 卡片通用样式 */
 .result-card {
   background: white;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(230, 230, 230, 0.7);
 }
 
 .result-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  transform: translateY(-10px);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
 }
 
 .result-card::before {
@@ -1241,7 +1437,7 @@ onMounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 5px;
   background: linear-gradient(to right, #34c759, #32ade6);
 }
 
@@ -1249,27 +1445,40 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   padding-bottom: 15px;
   border-bottom: 1px solid #f0f0f0;
 }
 
 .card-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: #333;
+  position: relative;
+}
+
+.card-header h3::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(to right, #34c759, #32ade6);
+  left: 0;
+  bottom: -15px;
+  border-radius: 3px;
 }
 
 .card-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
   color: #32ade6;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
 }
 
 /* 数据展示样式 */
@@ -1277,13 +1486,15 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   flex: 1;
+  gap: 14px;
 }
 
 .detail-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 14px;
+  margin-bottom: 2px;
+  font-size: 15px;
+  align-items: center;
 }
 
 .detail-label {
@@ -1295,8 +1506,9 @@ onMounted(() => {
   font-weight: 600;
   color: #333;
   background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 /* 能源图表 */
@@ -1304,14 +1516,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 15px 0 20px;
+  margin: 20px 0 30px;
 }
 
 .donut-chart {
   position: relative;
-  width: 120px;
-  height: 120px;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+  width: 150px;
+  height: 150px;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
 }
 
 .donut-hole {
@@ -1319,17 +1531,19 @@ onMounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 70px;
-  height: 70px;
+  width: 90px;
+  height: 90px;
   background: #fff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: bold;
   color: #34c759;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    inset 0 0 15px rgba(0, 0, 0, 0.05),
+    0 4px 15px rgba(52, 199, 89, 0.15);
 }
 
 .donut-ring {
@@ -1337,7 +1551,7 @@ onMounted(() => {
   height: 100%;
   border-radius: 50%;
   background: #ff3b30;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(0 4px 8px rgba(255, 59, 48, 0.25));
 }
 
 .renewable {
@@ -1349,79 +1563,100 @@ onMounted(() => {
   border-radius: 50%;
   background: conic-gradient(#34c759 var(--percent), transparent 0);
   --percent: 0%;
+  filter: drop-shadow(0 4px 8px rgba(52, 199, 89, 0.25));
+  animation: fillDonut 1.5s ease-out forwards;
+}
+
+@keyframes fillDonut {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .chart-legend {
   display: flex;
   justify-content: center;
-  gap: 20px;
-  margin-top: 16px;
+  gap: 25px;
+  margin-top: 20px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 500;
 }
 
 .legend-color {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
 }
 
 .legend-color.renewable {
   background-color: #34c759;
+  box-shadow: 0 2px 6px rgba(52, 199, 89, 0.3);
 }
 
 .legend-color.fossil {
   background-color: #ff3b30;
+  box-shadow: 0 2px 6px rgba(255, 59, 48, 0.3);
 }
 
 /* 碳排放热力图卡片 */
 .heatmap {
   width: 100%;
-  height: 200px;
-  margin-bottom: 20px;
-  border-radius: 8px;
+  height: 230px;
+  margin-bottom: 25px;
+  border-radius: 12px;
   overflow: hidden;
   background: #f9fafb;
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    inset 0 0 15px rgba(0, 0, 0, 0.05),
+    0 4px 15px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 1s ease-out forwards;
 }
 
 .carbon-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .carbon-stat-item {
   display: flex;
   flex-direction: column;
-  font-size: 13px;
+  font-size: 14px;
   background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 12px 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(230, 230, 230, 0.7);
+}
+
+.carbon-stat-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
 }
 
 .stat-label {
   color: #666;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   font-weight: 500;
 }
 
 .stat-value {
   font-weight: 600;
   color: #333;
+  font-size: 16px;
 }
 
 /* 碳排放总计 */
 .carbon-total {
   margin-top: auto;
-  padding-top: 15px;
+  padding-top: 20px;
   border-top: 1px solid #eee;
 }
 
@@ -1429,8 +1664,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   font-weight: 600;
-  margin-bottom: 6px;
-  font-size: 15px;
+  margin-bottom: 10px;
+  font-size: 16px;
 }
 
 .total-label {
@@ -1440,137 +1675,97 @@ onMounted(() => {
 .total-value {
   color: #ff3b30;
   background: rgba(255, 59, 48, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(255, 59, 48, 0.2);
 }
 
 .total-info {
-  font-size: 13px;
+  font-size: 14px;
   color: #666;
   text-align: center;
-  margin-top: 6px;
-  padding: 6px;
+  margin-top: 10px;
+  padding: 10px;
   background: #f5f7fa;
-  border-radius: 6px;
-}
-
-/* 优化建议卡片 */
-.suggestion-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.suggestion-item {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 15px;
-  font-size: 14px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
-  transition: all 0.3s ease;
-}
-
-.suggestion-item:hover {
-  background: linear-gradient(135deg, #e4e7eb, #f5f7fa);
-  transform: translateX(3px);
-}
-
-.suggestion-icon {
-  margin-right: 10px;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(50, 173, 230, 0.15);
-  color: #32ade6;
-}
-
-/* 页脚样式 */
-.footer {
-  text-align: center;
-  margin-top: 50px;
-  padding: 20px 0;
-  color: #666;
-  font-size: 14px;
-  border-top: 1px solid #eee;
-}
-
-.copyright {
-  margin-top: 6px;
-  font-size: 13px;
-  opacity: 0.8;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .carbon-stats {
-    grid-template-columns: 1fr;
-  }
-  
-  .header {
-    padding: 20px 0;
-  }
-  
-  .header h1 {
-    font-size: 24px;
-  }
-  
-  .result-grid {
-    gap: 20px;
-  }
-  
-  .result-card {
-    padding: 20px;
-  }
+  border-radius: 10px;
+  border: 1px solid rgba(230, 230, 230, 0.7);
+  line-height: 1.5;
 }
 
 /* 性能指标样式 */
 .performance-metrics {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
 .metric-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  padding: 15px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  animation: slideIn 0.5s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 0.1s);
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+@keyframes slideIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.metric-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
 }
 
 .metric-header {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
+  align-items: center;
 }
 
 .metric-name {
   color: #444;
   font-weight: 500;
+  font-size: 15px;
 }
 
 .metric-value {
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 15px;
 }
 
 .metric-value.good {
   background-color: rgba(52, 199, 89, 0.15);
   color: #34c759;
+  box-shadow: 0 2px 6px rgba(52, 199, 89, 0.2);
 }
 
 .metric-value.average {
   background-color: rgba(255, 149, 0, 0.15);
   color: #ff9500;
+  box-shadow: 0 2px 6px rgba(255, 149, 0, 0.2);
 }
 
 .metric-value.poor {
   background-color: rgba(255, 59, 48, 0.15);
   color: #ff3b30;
+  box-shadow: 0 2px 6px rgba(255, 59, 48, 0.2);
+}
+
+.metric-value.unknown {
+  background-color: rgba(150, 150, 150, 0.15);
+  color: #888;
+  font-style: italic;
+  box-shadow: 0 2px 6px rgba(150, 150, 150, 0.2);
 }
 
 .progress-bar-container {
@@ -1584,14 +1779,21 @@ onMounted(() => {
   position: absolute;
   width: 100%;
   height: 100%;
-  background-color: #f0f0f0;
+  background-color: rgba(240, 240, 240, 0.7);
 }
 
 .progress-bar {
   position: absolute;
   height: 100%;
-  transition: width 0.5s ease;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+  transition: width 1s cubic-bezier(0.65, 0, 0.35, 1);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  width: 0; /* 动画起始宽度 */
+  animation: progressFill 1.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation-delay: 0.5s;
+}
+
+@keyframes progressFill {
+  to { width: var(--width, 0%); }
 }
 
 .progress-bar.good {
@@ -1604,5 +1806,263 @@ onMounted(() => {
 
 .progress-bar.poor {
   background: linear-gradient(to right, #ff3b30, #ff6b60);
+}
+
+.progress-bar.unknown {
+  background: linear-gradient(to right, #aaa, #ccc);
+  opacity: 0.5;
+}
+
+/* 优化建议卡片 */
+.suggestion-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  font-size: 14px;
+  padding: 15px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(230, 230, 230, 0.7);
+  animation: fadeInLeft 0.5s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 0.1s);
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+@keyframes fadeInLeft {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.suggestion-item:hover {
+  background: linear-gradient(135deg, #e4e7eb, #f5f7fa);
+  transform: translateX(5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+}
+
+.suggestion-icon {
+  margin-right: 12px;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(50, 173, 230, 0.15);
+  color: #32ade6;
+  box-shadow: 0 2px 6px rgba(50, 173, 230, 0.2);
+}
+
+/* 方法信息卡片 */
+.result-card.suggestions h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+  position: relative;
+}
+
+.result-card.suggestions h3:after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(to right, #34c759, #32ade6);
+  left: 0;
+  bottom: -10px;
+  border-radius: 3px;
+}
+
+.result-card.suggestions p {
+  margin: 20px 0 15px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #555;
+}
+
+.result-card.suggestions ol {
+  counter-reset: item;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.result-card.suggestions li {
+  counter-increment: item;
+  margin-bottom: 12px;
+  padding-left: 40px;
+  position: relative;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #555;
+}
+
+.result-card.suggestions li:before {
+  content: counter(item);
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: linear-gradient(135deg, #34c759, #32ade6);
+  color: white;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(50, 173, 230, 0.3);
+}
+
+/* 数据不可用状态 */
+.data-unavailable {
+  color: #888;
+  font-style: italic;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: center;
+  margin: 15px 0;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(230, 230, 230, 0.7);
+}
+
+/* 错误消息样式 */
+.error-message {
+  color: #ff3b30;
+  background-color: rgba(255, 59, 48, 0.1);
+  padding: 20px;
+  border-radius: 12px;
+  margin: 25px 0;
+  text-align: center;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(255, 59, 48, 0.15);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* 页脚样式 */
+.footer {
+  margin-top: 80px;
+  padding: 30px 0;
+  color: #666;
+  font-size: 14px;
+  border-top: 1px solid #eee;
+  text-align: center;
+  background: linear-gradient(180deg, transparent, rgba(240, 240, 240, 0.5));
+  border-radius: 0 0 16px 16px;
+}
+
+.copyright {
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .header {
+    padding: 25px 0;
+  }
+  
+  .header h1 {
+    font-size: 28px;
+  }
+  
+  .logo {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .logo-icon {
+    font-size: 28px;
+  }
+  
+  .result-grid {
+    gap: 20px;
+  }
+  
+  .result-card {
+    padding: 25px;
+  }
+  
+  .carbon-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .summary-icon {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .summary-content h2 {
+    font-size: 26px;
+  }
+  
+  .summary-card {
+    padding: 25px;
+  }
+  
+  .donut-chart {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .donut-hole {
+    width: 70px;
+    height: 70px;
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 24px;
+  }
+  
+  .logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+  }
+  
+  .logo-icon {
+    font-size: 24px;
+  }
+  
+  .result-card {
+    padding: 20px;
+  }
+  
+  .summary-icon {
+    width: 50px;
+    height: 50px;
+    margin-right: 15px;
+  }
+  
+  .summary-content h2 {
+    font-size: 22px;
+  }
+  
+  .summary-content p {
+    font-size: 14px;
+  }
 }
 </style> 
