@@ -100,24 +100,82 @@ export async function measurePageSize(url) {
 /**
  * 测量网站性能指标
  * @param {string} url - 目标URL
+ * @param {string} [browser='auto'] - 使用的浏览器，可选值：'auto'(自动)、'chrome'、'edge'
  * @returns {Promise<Object>} 性能指标
  */
-export async function measurePerformance(url) {
-  try {
-    const fullUrl = parseUrl(url);
-    const response = await axios.get(`${API_URL}/performance`, {
-      params: { url: fullUrl }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('测量性能指标失败:', error);
-    // 失败时返回错误信息
-    return {
-      error: '无法测量性能指标',
-      details: error.message,
-      measurable: false
-    };
-  }
+export async function measurePerformance(url, browser = 'auto') {
+  let retries = 0;
+  const maxRetries = 2;
+  const retryDelay = 3000; // 重试间隔3秒
+  
+  const attemptMeasure = async () => {
+    try {
+      const fullUrl = parseUrl(url);
+      console.log(`尝试测量性能指标 (使用${browser === 'auto' ? '自动选择浏览器' : browser}) (尝试 ${retries + 1}/${maxRetries + 1}): ${fullUrl}`);
+      
+      const response = await axios.get(`${API_URL}/performance`, {
+        params: { 
+          url: fullUrl,
+          browser: browser // 将浏览器参数传递给后端
+        },
+        timeout: 120000 // 增加超时时间到120秒，因为Lighthouse分析可能需要较长时间
+      });
+      
+      console.log(`性能指标测量成功 (使用${response.data.measuredBy || '未知方法'}):`, response.data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error(`性能测量失败 (尝试 ${retries + 1}/${maxRetries + 1}):`, error.message);
+        
+        if (error.response) {
+          // 服务器返回了错误状态码
+          console.error('服务器错误:', error.response.status, error.response.data);
+          return {
+            error: `性能测量失败: ${error.response.data.message || '服务器错误'}`,
+            details: error.response.data,
+            measurable: false
+          };
+        } else if (error.request) {
+          // 请求已经发出，但没有收到响应
+          console.error('未收到响应:', error.request);
+          if (retries < maxRetries) {
+            retries++;
+            console.log(`等待 ${retryDelay}ms 后重试...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            return attemptMeasure();
+          }
+          return {
+            error: '性能测量超时，请检查网络连接或网站可访问性',
+            details: '请求已发出但未收到响应',
+            measurable: false
+          };
+        } else {
+          // 设置请求时发生了错误
+          if (retries < maxRetries) {
+            retries++;
+            console.log(`等待 ${retryDelay}ms 后重试...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            return attemptMeasure();
+          }
+          return {
+            error: '无法测量性能指标',
+            details: error.message,
+            measurable: false
+          };
+        }
+      } else {
+        // 非Axios错误
+        console.error('性能测量过程中发生非网络错误:', error);
+        return {
+          error: '无法测量性能指标',
+          details: error.message,
+          measurable: false
+        };
+      }
+    }
+  };
+  
+  return attemptMeasure();
 }
 
 /**
@@ -144,14 +202,18 @@ export async function analyzeProvider(domain) {
 /**
  * 综合分析网站（使用后端的单一接口）
  * @param {string} domain - 目标域名
+ * @param {string} [browser='auto'] - 使用的浏览器，可选值：'auto'(自动)、'chrome'、'edge'
  * @returns {Promise<Object>} 分析结果
  */
-export async function analyzeWebsite(domain) {
+export async function analyzeWebsite(domain, browser = 'auto') {
   try {
     // 使用后端的综合分析端点
     const response = await axios.get(`${API_URL}/analyze`, {
-      params: { domain },
-      timeout: 60000 // 增加超时时间到60秒，因为Lighthouse分析可能需要较长时间
+      params: { 
+        domain,
+        browser // 添加浏览器参数
+      },
+      timeout: 120000 // 增加超时时间到120秒
     });
     
     return response.data;
@@ -168,9 +230,10 @@ export async function analyzeWebsite(domain) {
 /**
  * 单独调用，不使用综合接口（用于测试和调试）
  * @param {string} domain - 目标域名
+ * @param {string} [browser='auto'] - 使用的浏览器，可选值：'auto'(自动)、'chrome'、'edge'
  * @returns {Promise<Object>} 分析结果
  */
-export async function analyzeWebsiteSeparately(domain) {
+export async function analyzeWebsiteSeparately(domain, browser = 'auto') {
   try {
     // 准备完整URL
     const url = parseUrl(domain);
@@ -181,7 +244,7 @@ export async function analyzeWebsiteSeparately(domain) {
       getServerLocation(domain),
       getHttpHeaders(url),
       measurePageSize(url),
-      measurePerformance(url),
+      measurePerformance(url, browser), // 传递浏览器参数
       analyzeProvider(domain)
     ]);
     
@@ -198,6 +261,7 @@ export async function analyzeWebsiteSeparately(domain) {
       return {
         url,
         domain,
+        browser, // 添加使用的浏览器信息
         error: '部分数据获取失败',
         details: errors.join('; '),
         measurable: false,
@@ -212,6 +276,7 @@ export async function analyzeWebsiteSeparately(domain) {
     return {
       url,
       domain,
+      browser, // 添加使用的浏览器信息
       provider: providerData.provider,
       location: locationData,
       pageSize: sizeData.size,

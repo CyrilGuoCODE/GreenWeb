@@ -1,33 +1,44 @@
 <template>
-  <div class="app-container">
-    <header class="header">
-      <div class="logo-container">
-        <div class="logo">
-          <span class="logo-icon">🌿</span>
-        </div>
-        <h1>GreenWeb碳中和检测</h1>
+  <div class="green-web-app">
+    <!-- 标题和介绍 -->
+    <header class="app-header">
+      <div class="logo">
+        <img src="./assets/logo.svg" alt="Green Web Checker Logo">
       </div>
-      <p class="subtitle">基于算法评估网站碳排放</p>
+      <h1>GreenWeb <span>碳排放检测</span></h1>
+      <p>分析网站服务器能源使用和碳足迹，助力可持续互联网发展</p>
     </header>
     
-    <main class="main-content">
-      <div class="input-section">
+    <!-- 输入区域 -->
+    <div class="input-section">
+      <div class="url-input-group">
         <el-input
           v-model="domain"
-          placeholder="请输入网站域名或IP地址"
           class="domain-input"
-          :prefix-icon="Search"
+          placeholder="输入网站域名 (例如: example.com)"
+          @keyup.enter="checkCarbon"
+          :disabled="loading"
+        />
+        
+        <!-- 浏览器选择下拉菜单 -->
+        <el-select v-model="selectedBrowser" placeholder="分析方式" class="browser-select">
+          <el-option label="自动选择" value="auto"></el-option>
+          <el-option label="基础HTTP分析" value="basic"></el-option>
+          <el-option label="仅HTTP头分析" value="headers"></el-option>
+        </el-select>
+        
+        <el-button 
+          type="primary" 
+          @click="checkCarbon" 
+          :loading="loading"
+          class="analyze-button"
         >
-          <template #append>
-            <el-button type="primary" @click="checkCarbon" :loading="loading">
-              检测
-            </el-button>
-          </template>
-        </el-input>
-        <p class="input-hint">例如: baidu.com , bing.com , cloudflare.com</p>
-
+          分析碳排放
+        </el-button>
       </div>
-
+    </div>
+    
+    <main class="main-content">
       <div v-if="loading" class="loading-container">
         <div class="earth-container">
           <div class="earth"></div>
@@ -152,19 +163,33 @@
               </div>
             </div>
             <div v-if="result.totalCarbonEmission !== null">
+              <!-- 新增评分显示区域 -->
+              <div class="score-container" v-if="result.carbonFootprintScore || result.energyEfficiencyScore">
+                <div class="carbon-score-card" :class="getCarbonScoreClass(result.carbonFootprintScore)">
+                  <div class="score-circle">{{ Math.round(result.carbonFootprintScore || 50) }}</div>
+                  <div class="score-label">碳足迹评分</div>
+                  <div class="score-desc">{{ getCarbonScoreDesc(result.carbonFootprintScore) }}</div>
+                </div>
+                <div class="carbon-score-card" :class="getEnergyScoreClass(result.energyEfficiencyScore)">
+                  <div class="score-circle">{{ Math.round(result.energyEfficiencyScore || 50) }}</div>
+                  <div class="score-label">能源效率评分</div>
+                  <div class="score-desc">{{ getEnergyScoreDesc(result.energyEfficiencyScore) }}</div>
+                </div>
+              </div>
+              
               <div ref="heatmapRef" class="heatmap"></div>
               <div class="carbon-stats">
                 <div class="carbon-stat-item">
                   <span class="stat-label">数据中心碳排放:</span>
-                  <span class="stat-value">{{ result.dataTransferCarbon.toFixed(2) }} gCO2e</span>
+                  <span class="stat-value">{{ formatNumber(result.dataTransferCarbon) }} gCO2e</span>
                 </div>
                 <div class="carbon-stat-item">
                   <span class="stat-label">网络传输碳排放:</span>
-                  <span class="stat-value">{{ result.networkCarbon.toFixed(2) }} gCO2e</span>
+                  <span class="stat-value">{{ formatNumber(result.networkCarbon) }} gCO2e</span>
                 </div>
                 <div class="carbon-stat-item">
                   <span class="stat-label">客户端碳排放:</span>
-                  <span class="stat-value">{{ result.clientCarbon.toFixed(2) }} gCO2e</span>
+                  <span class="stat-value">{{ formatNumber(result.clientCarbon) }} gCO2e</span>
                 </div>
                 <div class="carbon-stat-item">
                   <span class="stat-label">总计碳排放:</span>
@@ -197,7 +222,7 @@
                 :key="metric"
                 :style="`--i: ${index}`"
                 class="metric-item"
-                v-show="!['measuredBy', 'statusCode', 'measurable'].includes(metric)"
+                v-show="!['measuredBy', 'statusCode', 'measurable', 'requestCount', 'domainCount'].includes(metric)"
               >
                 <div class="metric-header">
                   <span class="metric-name">{{ formatMetricName(metric) }}</span>
@@ -217,6 +242,20 @@
                   ></div>
                 </div>
               </div>
+              
+              <!-- 添加网络请求指标显示 -->
+              <div v-if="result.performance.requestCount || result.performance.domainCount" class="additional-metrics">
+                <h4>网络请求数据</h4>
+                <div class="detail-item" v-if="result.performance.requestCount">
+                  <span class="detail-label">请求数量:</span>
+                  <span class="detail-value">{{ result.performance.requestCount }}</span>
+                </div>
+                <div class="detail-item" v-if="result.performance.domainCount">
+                  <span class="detail-label">域名数量:</span>
+                  <span class="detail-value">{{ result.performance.domainCount }}</span>
+                </div>
+              </div>
+              
               <div v-if="result.performance.measuredBy" class="data-unavailable">
                 测量工具: {{ result.performance.measuredBy }}
               </div>
@@ -302,6 +341,7 @@ const loading = ref(false)
 const result = ref(null)
 const heatmapRef = ref(null)
 let heatmapChart = null
+const selectedBrowser = ref('auto') // 添加浏览器选择变量，默认为自动选择
 
 // 全球平均数据
 const globalConstants = {
@@ -554,8 +594,8 @@ async function checkCarbon() {
   result.value = null
   
   try {
-    // 使用真实网站分析数据
-    const websiteData = await websiteAnalyzer.analyzeWebsite(domain.value)
+    // 使用真实网站分析数据，传递选择的浏览器
+    const websiteData = await websiteAnalyzer.analyzeWebsite(domain.value, selectedBrowser.value)
     console.log('网站分析结果:', websiteData)
     
     // 检查数据是否可用
@@ -742,7 +782,13 @@ async function checkCarbon() {
       performance,
       suggestions,
       pue: dataCenterPUE,
-      estimatedPageType
+      estimatedPageType,
+      // 添加新的评分指标
+      carbonFootprintScore: websiteData.carbonFootprintScore,
+      energyEfficiencyScore: websiteData.energyEfficiencyScore,
+      cachingEfficiency: websiteData.cachingEfficiency,
+      requestCount: performance?.requestCount || 0,
+      domainCount: performance?.domainCount || 0
     }
     
     // 更新UI
@@ -1070,11 +1116,90 @@ onMounted(() => {
     }
   })
 })
+
+// 格式化数字
+function formatNumber(num) {
+  if (num === null || num === undefined) return '0'
+  return parseFloat(num).toFixed(2)
+}
+
+// 获取碳足迹评分的样式类
+function getCarbonScoreClass(score) {
+  if (!score) return 'moderate'
+  score = parseInt(score)
+  if (score <= 30) return 'excellent'
+  if (score <= 50) return 'good'
+  if (score <= 70) return 'moderate'
+  return 'poor'
+}
+
+// 获取能源效率评分的样式类
+function getEnergyScoreClass(score) {
+  if (!score) return 'moderate'
+  score = parseInt(score)
+  if (score >= 80) return 'excellent'
+  if (score >= 60) return 'good'
+  if (score >= 40) return 'moderate'
+  return 'poor'
+}
+
+// 获取碳足迹评分描述
+function getCarbonScoreDesc(score) {
+  if (!score) return '评估中'
+  score = parseInt(score)
+  if (score <= 30) return '非常环保'
+  if (score <= 50) return '较为环保'
+  if (score <= 70) return '一般水平'
+  return '需要改进'
+}
+
+// 获取能源效率评分描述
+function getEnergyScoreDesc(score) {
+  if (!score) return '评估中'
+  score = parseInt(score)
+  if (score >= 80) return '高效利用'
+  if (score >= 60) return '良好效率'
+  if (score >= 40) return '一般效率'
+  return '低效利用'
+}
+
+// 获取碳排放等价物描述
+function getCarbonEquivalent(emission) {
+  if (!emission) return '无法计算'
+  
+  if (emission < 0.5) {
+    return '少于一封电子邮件的碳排放'
+  } else if (emission < 1) {
+    return '约等于一封电子邮件的碳排放'
+  } else if (emission < 3) {
+    return '约等于浏览一个简单网页'
+  } else if (emission < 10) {
+    return '约等于观看1分钟高清视频'
+  } else {
+    return `约等于观看${Math.round(emission/10)}分钟高清视频`
+  }
+}
+
+// 格式化能源消耗值
+function formatEnergy(value) {
+  if (!value) return '0 Wh'
+  return (value * 1000).toFixed(3) + ' Wh'
+}
+
+// 获取缓存效率描述
+function getCachingEfficiency(value) {
+  if (!value) return '标准优化'
+  const percent = (value * 100).toFixed(0)
+  if (value < 0.2) return `基础优化 (${percent}%)`
+  if (value < 0.4) return `标准优化 (${percent}%)`
+  if (value < 0.6) return `良好优化 (${percent}%)`
+  return `优秀优化 (${percent}%)`
+}
 </script>
 
 <style>
 /* 全局样式 */
-.app-container {
+.green-web-app {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
@@ -1087,7 +1212,7 @@ onMounted(() => {
 }
 
 /* 头部样式 */
-.header {
+.app-header {
   text-align: center;
   margin-bottom: 40px;
   padding: 35px 0;
@@ -1100,7 +1225,7 @@ onMounted(() => {
   transform: translateZ(0);
 }
 
-.header::before {
+.app-header::before {
   content: '';
   position: absolute;
   top: 0;
@@ -1113,7 +1238,7 @@ onMounted(() => {
   z-index: 1;
 }
 
-.header::after {
+.app-header::after {
   content: '';
   position: absolute;
   top: -50%;
@@ -1130,15 +1255,6 @@ onMounted(() => {
 @keyframes shimmer {
   0% { transform: translateX(-50%) rotateZ(-45deg); }
   100% { transform: translateX(100%) rotateZ(-45deg); }
-}
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 15px;
-  position: relative;
-  z-index: 3;
 }
 
 .logo {
@@ -1163,7 +1279,7 @@ onMounted(() => {
   font-size: 35px;
 }
 
-.header h1 {
+.app-header h1 {
   margin: 0;
   font-size: 36px;
   font-weight: 700;
@@ -1190,14 +1306,16 @@ onMounted(() => {
   transform: translateY(-20px);
 }
 
-.domain-input {
-  max-width: 650px;
-  margin: 0 auto;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+.url-input-group {
   display: flex;
-  justify-content: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.domain-input {
+  flex: 1;
+  margin-right: 10px;
 }
 
 .domain-input :deep(.el-input__wrapper) {
@@ -1696,7 +1814,27 @@ onMounted(() => {
 .performance-metrics {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  margin-top: 15px;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.additional-metrics {
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 8px;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.additional-metrics h4 {
+  font-size: 16px;
+  color: #2c3e50;
+  margin-bottom: 10px;
+  margin-top: 0;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 6px;
 }
 
 .metric-item {
@@ -1978,11 +2116,11 @@ onMounted(() => {
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-  .header {
+  .app-header {
     padding: 25px 0;
   }
   
-  .header h1 {
+  .app-header h1 {
     font-size: 28px;
   }
   
@@ -1995,7 +2133,23 @@ onMounted(() => {
     font-size: 28px;
   }
   
+  .url-input-group {
+    flex-direction: column;
+  }
+  
+  .domain-input {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  
+  .browser-select {
+    width: 100%;
+    margin-bottom: 10px;
+    margin-right: 0;
+  }
+  
   .result-grid {
+    grid-template-columns: 1fr;
     gap: 20px;
   }
   
@@ -2010,6 +2164,7 @@ onMounted(() => {
   .summary-icon {
     width: 60px;
     height: 60px;
+    margin-right: 20px;
   }
   
   .summary-content h2 {
@@ -2018,6 +2173,16 @@ onMounted(() => {
   
   .summary-card {
     padding: 25px;
+  }
+  
+  .score-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .carbon-score-card {
+    width: 90%;
+    margin-bottom: 10px;
   }
   
   .donut-chart {
@@ -2033,7 +2198,7 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
-  .header h1 {
+  .app-header h1 {
     font-size: 24px;
   }
   
@@ -2044,7 +2209,7 @@ onMounted(() => {
   }
   
   .logo-icon {
-    font-size: 24px;
+    font-size: 22px;
   }
   
   .result-card {
@@ -2064,5 +2229,141 @@ onMounted(() => {
   .summary-content p {
     font-size: 14px;
   }
+  
+  .carbon-score-card {
+    width: 100%;
+    padding: 12px;
+  }
+  
+  .score-circle {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+}
+
+/* 添加浏览器选择下拉菜单的样式 */
+.browser-select {
+  margin-right: 10px;
+  width: 140px;
+}
+
+/* 调整URL输入框组的样式以容纳新的下拉菜单 */
+.url-input-group {
+  display: flex;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.domain-input {
+  flex: 1;
+  margin-right: 10px;
+}
+
+/* 碳排放分数显示 */
+.score-container {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.carbon-score-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  min-width: 110px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.carbon-score-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.carbon-score-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #ff3b30, #ff9500);
+}
+
+.carbon-score-card.excellent::before {
+  background: linear-gradient(90deg, #4cd964, #34c759);
+}
+
+.carbon-score-card.good::before {
+  background: linear-gradient(90deg, #34c759, #5ac8fa);
+}
+
+.carbon-score-card.moderate::before {
+  background: linear-gradient(90deg, #ffcc00, #ff9500);
+}
+
+.carbon-score-card.poor::before {
+  background: linear-gradient(90deg, #ff3b30, #ff9500);
+}
+
+.score-circle {
+  font-size: 24px;
+  font-weight: 700;
+  background: #f5f7fa;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  color: #333;
+  border: 3px solid #eee;
+}
+
+.carbon-score-card.excellent .score-circle {
+  background: rgba(76, 217, 100, 0.15);
+  color: #34c759;
+  border-color: rgba(76, 217, 100, 0.3);
+}
+
+.carbon-score-card.good .score-circle {
+  background: rgba(90, 200, 250, 0.15);
+  color: #007aff;
+  border-color: rgba(90, 200, 250, 0.3);
+}
+
+.carbon-score-card.moderate .score-circle {
+  background: rgba(255, 204, 0, 0.15);
+  color: #ff9500;
+  border-color: rgba(255, 204, 0, 0.3);
+}
+
+.carbon-score-card.poor .score-circle {
+  background: rgba(255, 59, 48, 0.15);
+  color: #ff3b30;
+  border-color: rgba(255, 59, 48, 0.3);
+}
+
+.score-label {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.score-desc {
+  font-size: 13px;
+  color: #888;
 }
 </style> 
