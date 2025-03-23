@@ -5,9 +5,9 @@
         <div class="logo">
           <span class="logo-icon">🌿</span>
         </div>
-        <h1>GreenWeb网站碳中和检测</h1>
+        <h1>GreenWeb碳中和检测</h1>
       </div>
-      <p class="subtitle">基于先进算法评估网站碳排放</p>
+      <p class="subtitle">基于算法评估网站碳排放</p>
     </header>
     
     <main class="main-content">
