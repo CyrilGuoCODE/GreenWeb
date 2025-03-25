@@ -5,8 +5,16 @@
 
 import axios from 'axios';
 
-// 代理服务器URL（我们的Node.js服务器）
-const API_URL = 'http://localhost:3000/api';
+// 获取当前环境的基础URL
+function getBaseUrl() {
+  // 在生产环境中，API和前端在同一域下运行
+  // 在开发环境中，API在localhost:3000上运行
+  const isProd = import.meta.env.PROD;
+  return isProd ? '/api' : 'http://localhost:3000/api';
+}
+
+// 代理服务器URL
+const API_URL = getBaseUrl();
 
 /**
  * 解析URL获取完整域名

@@ -1877,13 +1877,16 @@ async function analyzeHttpHeaders(url) {
 }
 
 // 所有其他路由返回前端应用
-app.get('*', (req, res) => {
+const serveIndex = (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
-});
+};
+
+app.get('*', serveIndex);
 
 // 启动服务器
 app.listen(PORT, async () => {
   console.log(`GreenWeb服务器运行在端口 ${PORT}`);
+  console.log(`访问 http://localhost:${PORT} 以使用应用`);
   
   // 检查Chrome可用性
   const chromeAvailable = await checkChromeAvailability();
