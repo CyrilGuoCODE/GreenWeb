@@ -18,13 +18,7 @@ export default defineConfig({
     outDir: 'dist', // 输出目录
     assetsDir: 'assets', // 静态资源目录
     emptyOutDir: true, // 构建前清空输出目录
-    minify: 'terser', // 使用terser最小化代码
-    terserOptions: {
-      compress: {
-        drop_console: true, // 去除控制台日志
-        drop_debugger: true // 去除调试器语句
-      }
-    },
+    minify: 'esbuild', // 使用esbuild最小化代码，替换terser
     chunkSizeWarningLimit: 1500 // 块大小警告限制
   }
 }) 
