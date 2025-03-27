@@ -47,19 +47,158 @@
       </div>
 
       <div v-if="result && !loading" class="result-section">
+        <!-- 添加错误提示区域 -->
+        <div v-if="result.hasError" class="error-alerts">
+          <div class="error-alert">
+            <h3>注意：部分数据无法获取</h3>
+            <ul>
+              <li v-for="(error, index) in result.errorMessages" :key="index">{{ error }}</li>
+            </ul>
+            <p>以下分析仅基于可获取的真实数据。</p>
+          </div>
+        </div>
+        
+        <!-- 添加数据真实性指示 -->
+        <div v-if="result.estimatedData && result.estimatedData.length > 0" class="data-note">
+          <p><strong>注意:</strong> 以下数据是估算的，而非直接测量：{{ result.estimatedData.join(', ') }}。</p>
+        </div>
+        
         <div class="result-summary">
           <div class="summary-card" :class="result.isGreen ? 'green' : 'red'">
-            <div class="summary-icon">
-              <el-icon :size="40">
-                <component :is="result.isGreen ? 'Check' : 'Close'" />
-              </el-icon>
+            <div class="summary-header">
+              <div class="summary-title">碳排放评估结果</div>
+              <div class="summary-subtitle">{{ domain }}</div>
             </div>
             <div class="summary-content">
-              <h2>{{ result.isGreen ? '碳中和' : '非碳中和' }}</h2>
-              <p v-if="result.totalCarbonEmission !== null">单次访问碳排放量: {{ result.totalCarbonEmission.toFixed(2) }} gCO2e</p>
-              <p v-else class="data-unavailable">单次访问碳排放量: 无法获取</p>
-              <p v-if="result.monthlyCarbonEmission !== null">每月碳排放量: {{ result.monthlyCarbonEmission.toFixed(2) }} kgCO2e</p>
-              <p v-else class="data-unavailable">每月碳排放量: 无法获取</p>
+              <div class="summary-section">
+                <div class="total-emission">
+                  <div class="carbon-icon">
+                    <i :class="result.isGreen ? 'fa-solid fa-leaf fa-2x' : 'fa-solid fa-smog fa-2x'"></i>
+                  </div>
+                  <div class="carbon-details">
+                    <div class="total-title">此网页单次访问的碳排放</div>
+                    <div class="total-value">
+                      {{ result.totalCarbonEmission?.toFixed(4) || '0.0000' }} gCO2e
+                      <span v-if="result.estimatedData && result.estimatedData.includes('totalCarbonEmission')" class="estimated-data-tag">估算</span>
+                    </div>
+                    <div class="total-breakdown">
+                      <div class="total-item">
+                        <span class="total-label">月度碳排放:</span>
+                        <span class="total-value">
+                          {{ result.monthlyCarbonEmission?.toFixed(2) || '0.00' }} kgCO2e
+                          <span v-if="result.estimatedData && result.estimatedData.includes('monthlyCarbonEmission')" class="estimated-data-tag">估算</span>
+                        </span>
+                      </div>
+                      <div class="total-info">
+                        基于{{ globalConstants.averageMonthlyVisits.toLocaleString() }}次月访问量
+                        <span class="estimated-data-tag">估算</span>
+                      </div>
+                      <div class="total-item">
+                        <span class="total-label">年度碳排放:</span>
+                        <span class="total-value">
+                          {{ result.annualCarbonEmission?.toFixed(2) || '0.00' }} kgCO2e
+                          <span v-if="result.estimatedData && result.estimatedData.includes('annualCarbonEmission')" class="estimated-data-tag">估算</span>
+                        </span>
+                      </div>
+                      <div class="total-info">
+                        相当于种植{{ Math.round((result.annualCarbonEmission || 0) / (globalConstants.treeCO2PerYear || 1)) }}棵树才能抵消
+                        <span class="estimated-data-tag">估算</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="summary-section">
+                <div class="energy-breakdown">
+                  <div class="energy-title">能源消耗明细</div>
+                  <div class="energy-items">
+                    <div class="energy-item">
+                      <div class="energy-label">数据中心</div>
+                      <div class="energy-value">
+                        {{ (result.dataCenterEnergy || 0).toFixed(4) }} Wh
+                        <span v-if="result.estimatedData && result.estimatedData.includes('dataCenterEnergy')" class="estimated-data-tag">估算</span>
+                      </div>
+                    </div>
+                    <div class="energy-item">
+                      <div class="energy-label">网络传输</div>
+                      <div class="energy-value">
+                        {{ (result.transmissionEnergy || 0).toFixed(4) }} Wh
+                        <span v-if="result.estimatedData && result.estimatedData.includes('transmissionEnergy')" class="estimated-data-tag">估算</span>
+                      </div>
+                    </div>
+                    <div class="energy-item">
+                      <div class="energy-label">用户设备</div>
+                      <div class="energy-value">
+                        {{ (result.deviceEnergy || 0).toFixed(4) }} Wh
+                        <span v-if="result.estimatedData && result.estimatedData.includes('deviceEnergy')" class="estimated-data-tag">估算</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-card hosting-info-card">
+            <div class="detail-header">
+              <div class="detail-title">绿色托管信息</div>
+            </div>
+            <div class="detail-content">
+              <div class="provider-info">
+                <div class="provider-icon" :class="result.isGreen ? 'green-provider' : 'standard-provider'">
+                  <i :class="result.isGreen ? 'fa-solid fa-solar-panel fa-2x' : 'fa-solid fa-industry fa-2x'"></i>
+                </div>
+                <div class="provider-details">
+                  <div class="provider-name">
+                    {{ result.providerName || '未知服务商' }}
+                    <span v-if="result.isGreen" class="green-badge">
+                      <i class="fa-solid fa-leaf"></i> 绿色托管
+                    </span>
+                  </div>
+                  <div class="provider-location">
+                    <i class="fa-solid fa-location-dot"></i> {{ result.region || '未知' }}, {{ result.country || '未知' }}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="provider-stats">
+                <div class="provider-stat-card renewable">
+                  <div class="provider-stat-icon">
+                    <i class="fa-solid fa-solar-panel"></i>
+                  </div>
+                  <div class="provider-stat-content">
+                    <div class="provider-stat-value">
+                      {{ result.renewablePercentage !== null ? result.renewablePercentage + '%' : '未知' }}
+                      <span v-if="result.estimatedData && result.estimatedData.includes('renewablePercentage')" class="estimated-data-tag">估算</span>
+                    </div>
+                    <div class="provider-stat-label">可再生能源使用率</div>
+                  </div>
+                </div>
+                
+                <div class="provider-stat-card efficiency">
+                  <div class="provider-stat-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                  </div>
+                  <div class="provider-stat-content">
+                    <div class="provider-stat-value">
+                      {{ result.pue || '未知' }}
+                      <span v-if="result.estimatedData && result.estimatedData.includes('pue')" class="estimated-data-tag">估算</span>
+                    </div>
+                    <div class="provider-stat-label">数据中心PUE</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="green-metric">
+                <div class="green-metric-bar-container">
+                  <div class="green-metric-bar" :style="`width: ${result.renewablePercentage || 0}%`"></div>
+                </div>
+                <div class="green-metric-labels">
+                  <span>碳密集型</span>
+                  <span>碳中和</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -96,7 +235,7 @@
             <div class="details">
               <div class="detail-item">
                 <span class="detail-label">服务商:</span>
-                <span class="detail-value">{{ result.provider.toUpperCase() }}</span>
+                <span class="detail-value">{{ result.provider && typeof result.provider === 'string' ? result.provider.toUpperCase() : '未知' }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">区域:</span>
@@ -155,60 +294,6 @@
             </div>
           </div>
 
-          <div class="result-card carbon-map">
-            <div class="card-header">
-              <h3>碳排放分析</h3>
-              <div class="card-icon">
-                <el-icon><PieChart /></el-icon>
-              </div>
-            </div>
-            <div v-if="result.totalCarbonEmission !== null">
-              <!-- 新增评分显示区域 -->
-              <div class="score-container" v-if="result.carbonFootprintScore || result.energyEfficiencyScore">
-                <div class="carbon-score-card" :class="getCarbonScoreClass(result.carbonFootprintScore)">
-                  <div class="score-circle">{{ Math.round(result.carbonFootprintScore || 50) }}</div>
-                  <div class="score-label">碳足迹评分</div>
-                  <div class="score-desc">{{ getCarbonScoreDesc(result.carbonFootprintScore) }}</div>
-                </div>
-                <div class="carbon-score-card" :class="getEnergyScoreClass(result.energyEfficiencyScore)">
-                  <div class="score-circle">{{ Math.round(result.energyEfficiencyScore || 50) }}</div>
-                  <div class="score-label">能源效率评分</div>
-                  <div class="score-desc">{{ getEnergyScoreDesc(result.energyEfficiencyScore) }}</div>
-                </div>
-              </div>
-              
-              <div ref="heatmapRef" class="heatmap"></div>
-              <div class="carbon-stats">
-                <div class="carbon-stat-item">
-                  <span class="stat-label">数据中心碳排放:</span>
-                  <span class="stat-value">{{ formatNumber(result.dataTransferCarbon) }} gCO2e</span>
-                </div>
-                <div class="carbon-stat-item">
-                  <span class="stat-label">网络传输碳排放:</span>
-                  <span class="stat-value">{{ formatNumber(result.networkCarbon) }} gCO2e</span>
-                </div>
-                <div class="carbon-stat-item">
-                  <span class="stat-label">客户端碳排放:</span>
-                  <span class="stat-value">{{ formatNumber(result.clientCarbon) }} gCO2e</span>
-                </div>
-                <div class="carbon-stat-item">
-                  <span class="stat-label">总计碳排放:</span>
-                  <span class="stat-value">{{ result.totalCarbonEmission.toFixed(2) }} gCO2e</span>
-                </div>
-              </div>
-              <div class="carbon-total">
-                <div class="total-item">
-                  <span class="total-label">年度碳排放:</span>
-                  <span class="total-value">{{ result.annualCarbonEmission.toFixed(2) }} kgCO2e</span>
-                </div>
-                <div class="total-info">相当于种植{{ Math.round(result.annualCarbonEmission / globalConstants.treeCO2PerYear) }}棵树才能抵消</div>
-              </div>
-            </div>
-            <div v-else class="data-unavailable">
-              无法获取碳排放分析数据
-            </div>
-          </div>
-
           <div class="result-card performance">
             <div class="card-header">
               <h3>性能指标</h3>
@@ -216,7 +301,7 @@
                 <el-icon><Timer /></el-icon>
               </div>
             </div>
-            <div v-if="result.performance && !result.performance.measurable === false" class="performance-metrics">
+            <div v-if="result.performance && result.performance.measurable !== false" class="performance-metrics">
               <div 
                 v-for="(value, metric, index) in result.performance" 
                 :key="metric"
@@ -315,885 +400,606 @@
   </div>
 </template>
 
-<script setup>
+<script>
 import { ref, onMounted, reactive, nextTick } from 'vue'
 import { Search, Connection, DataBoard, PieChart, Timer, Opportunity, Check, Close } from '@element-plus/icons-vue'
 import * as echarts from 'echarts/core'
-import { HeatmapChart, BarChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, VisualMapComponent, TitleComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
-import websiteAnalyzer from './services/websiteAnalyzer'
-import { ElMessage } from 'element-plus'
+import {
+  analyzeWebsite, 
+  measurePerformance, 
+  analyzeCarbonEmission, 
+  getServerLocation, 
+  analyzeProvider
+} from './services/websiteAnalyzer'
 
-// 注册必要的组件
-echarts.use([
-  HeatmapChart,
-  BarChart,
-  GridComponent,
-  TooltipComponent,
-  VisualMapComponent,
-  TitleComponent,
-  CanvasRenderer
-])
-
-const domain = ref('')
-const loading = ref(false)
-const result = ref(null)
-const heatmapRef = ref(null)
-let heatmapChart = null
-const selectedBrowser = ref('auto') // 添加浏览器选择变量，默认为自动选择
-
-// 全球平均数据
-const globalConstants = {
-  averageCarbonIntensity: 442, // 全球平均碳强度 g CO2/kWh (基于IEA全球电力数据)
-  greenEnergyCarbonIntensity: 40, // 绿色能源碳强度 g CO2/kWh (太阳能+风能+水能平均值)
-  averageDataCenterPUE: 1.58, // 数据中心平均PUE值 (Power Usage Effectiveness)
-  averageDataCenterEnergyPerGB: 0.015 * 1.58, // 每GB数据的服务器能耗(kWh) * PUE
-  averageTransmissionPerGB: 0.06, // 每GB数据的传输能耗 kWh/GB (基于全球网络能效研究)
-  averageDevicePerGB: 0.08, // 每GB数据的设备能耗消耗 kWh/GB
-  cachingEfficiency: 0.35, // 缓存减少的数据传输比例 (基于CDN性能研究)
-  bytesPerPageLoadAverage: 2300, // 每页加载的平均字节数 KB (根据HTTP Archive数据)
-  averageMonthlyVisits: 10000, // 平均每月访问量
-  treeCO2PerYear: 22, // 一棵树每年可吸收CO2量(kg)
-  greenEnergyThreshold: 80 // 视为绿色站点的可再生能源百分比阈值
-}
-
-// 服务商对应的地区信息和碳足迹数据
-const providerRegions = {
-  aws: {
-    regions: ['US East', 'US West', 'EU West', 'Asia Pacific', 'South America'],
-    countries: {
-      'US East': ['美国', '加拿大'],
-      'US West': ['美国'],
-      'EU West': ['爱尔兰', '德国', '法国', '英国'],
-      'Asia Pacific': ['日本', '韩国', '中国', '新加坡', '澳大利亚'],
-      'South America': ['巴西']
-    },
-    renewableChance: 0.65, // 使用可再生能源的概率
-    renewableRange: [60, 95], // 可再生能源使用比例范围
-    pueRange: [1.15, 1.35], // PUE范围 (电能使用效率)
-    serverEfficiency: 0.85 // 服务器能效指数 (越高越节能)
+export default {
+  name: 'App',
+  components: {
+    Search,
+    Connection,
+    DataBoard,
+    PieChart,
+    Timer,
+    Opportunity,
+    Check,
+    Close
   },
-  azure: {
-    regions: ['North America', 'Europe', 'Asia', 'Australia', 'Africa'],
-    countries: {
-      'North America': ['美国', '加拿大'],
-      'Europe': ['爱尔兰', '荷兰', '德国', '法国'],
-      'Asia': ['日本', '香港', '新加坡', '印度'],
-      'Australia': ['澳大利亚'],
-      'Africa': ['南非']
-    },
-    renewableChance: 0.7,
-    renewableRange: [65, 98],
-    pueRange: [1.12, 1.3],
-    serverEfficiency: 0.88
-  },
-  google: {
-    regions: ['Americas', 'Europe', 'Asia'],
-    countries: {
-      'Americas': ['美国', '加拿大', '智利'],
-      'Europe': ['比利时', '芬兰', '德国', '荷兰'],
-      'Asia': ['台湾', '新加坡', '日本']
-    },
-    renewableChance: 0.85,
-    renewableRange: [75, 100],
-    pueRange: [1.1, 1.25],
-    serverEfficiency: 0.9
-  },
-  alibaba: {
-    regions: ['中国', '亚太', '欧美'],
-    countries: {
-      '中国': ['中国'],
-      '亚太': ['新加坡', '马来西亚', '印度尼西亚', '日本'],
-      '欧美': ['美国', '德国', '英国']
-    },
-    renewableChance: 0.4,
-    renewableRange: [30, 70],
-    pueRange: [1.3, 1.6],
-    serverEfficiency: 0.8
-  },
-  tencent: {
-    regions: ['中国', '亚太', '北美', '欧洲'],
-    countries: {
-      '中国': ['中国'],
-      '亚太': ['新加坡', '韩国', '日本', '泰国'],
-      '北美': ['美国', '加拿大'],
-      '欧洲': ['德国', '俄罗斯']
-    },
-    renewableChance: 0.35,
-    renewableRange: [25, 65],
-    pueRange: [1.35, 1.65],
-    serverEfficiency: 0.78
-  },
-  other: {
-    regions: ['北美', '欧洲', '亚洲', '南美', '大洋洲', '非洲'],
-    countries: {
-      '北美': ['美国', '加拿大'],
-      '欧洲': ['德国', '法国', '英国', '荷兰', '瑞典'],
-      '亚洲': ['中国', '日本', '韩国', '新加坡', '印度'],
-      '南美': ['巴西', '阿根廷'],
-      '大洋洲': ['澳大利亚', '新西兰'],
-      '非洲': ['南非', '埃及']
-    },
-    renewableChance: 0.25,
-    renewableRange: [15, 60],
-    pueRange: [1.5, 1.8],
-    serverEfficiency: 0.75
-  }
-}
-
-// 国家碳强度数据 (gCO2/kWh)
-const countryCarbonIntensity = {
-  '美国': 389,
-  '加拿大': 135,
-  '英国': 225,
-  '德国': 350,
-  '法国': 56,
-  '爱尔兰': 296,
-  '荷兰': 358,
-  '比利时': 176,
-  '芬兰': 93,
-  '瑞典': 13,
-  '中国': 550,
-  '日本': 474,
-  '韩国': 415,
-  '新加坡': 392,
-  '香港': 650,
-  '台湾': 530,
-  '印度': 708,
-  '泰国': 490,
-  '马来西亚': 533,
-  '印度尼西亚': 722,
-  '澳大利亚': 656,
-  '新西兰': 103,
-  '巴西': 82,
-  '阿根廷': 308,
-  '智利': 412,
-  '南非': 928,
-  '埃及': 448,
-  '俄罗斯': 330
-}
-
-// 提取服务提供商信息
-function extractProvider(domain) {
-  if (!domain) return 'other'
   
-  domain = domain.toLowerCase()
-  
-  // 识别模式匹配
-  const patterns = {
-    aws: ['aws', 'amazon', 'amazonaws', 'ec2', 's3', 'elasticbeanstalk', 'cloudfront'],
-    azure: ['azure', 'microsoft', 'msft', 'windowsazure', 'azurewebsites'],
-    google: ['google', 'gcp', 'googlecloud', 'appspot', 'googleplex', 'firebase'],
-    alibaba: ['alibaba', 'aliyun', 'alicloud', 'taobao', 'tmall', 'alibabacloud'],
-    tencent: ['tencent', 'qcloud', 'tencentcloud', 'wechat', 'qq']
-  }
-  
-  // 遍历所有模式进行匹配
-  for (const [provider, keywords] of Object.entries(patterns)) {
-    if (keywords.some(keyword => domain.includes(keyword))) {
-      return provider
-    }
-  }
-  
-  // TLD分析以猜测地理位置
-  const tldPatterns = {
-    '.cn': 'alibaba',
-    '.hk': 'alibaba',
-    '.jp': 'aws',
-    '.kr': 'aws',
-    '.in': 'azure',
-    '.eu': 'azure',
-    '.uk': 'aws',
-    '.de': 'aws',
-    '.fr': 'azure',
-    '.ca': 'google',
-    '.au': 'aws',
-    '.br': 'aws'
-  }
-  
-  // 检查域名的TLD部分
-  for (const [tld, provider] of Object.entries(tldPatterns)) {
-    if (domain.endsWith(tld)) {
-      return provider
-    }
-  }
-  
-  // 无法确定，返回其他
-  return 'other'
-}
-
-// 获取随机区域和国家
-function getRandomLocation(provider) {
-  const providerInfo = providerRegions[provider] || providerRegions.other
-  
-  // 智能选择区域 - 某些提供商在特定区域更常见
-  let regionWeights = {}
-  
-  if (provider === 'aws') {
-    regionWeights = {
-      'US East': 0.35,
-      'US West': 0.2,
-      'EU West': 0.25,
-      'Asia Pacific': 0.15,
-      'South America': 0.05
-    }
-  } else if (provider === 'azure') {
-    regionWeights = {
-      'North America': 0.4,
-      'Europe': 0.3,
-      'Asia': 0.2,
-      'Australia': 0.07,
-      'Africa': 0.03
-    }
-  } else if (provider === 'google') {
-    regionWeights = {
-      'Americas': 0.45,
-      'Europe': 0.35,
-      'Asia': 0.2
-    }
-  } else if (provider === 'alibaba' || provider === 'tencent') {
-    regionWeights = {
-      '中国': 0.7,
-      '亚太': 0.2,
-      '欧美': 0.1
-    }
-  } else {
-    // 对其他提供商均匀分布
-    providerInfo.regions.forEach(region => {
-      regionWeights[region] = 1 / providerInfo.regions.length
-    })
-  }
-  
-  // 基于权重随机选择区域
-  const randomValue = Math.random()
-  let cumulativeWeight = 0
-  let selectedRegion = providerInfo.regions[0]
-  
-  for (const [region, weight] of Object.entries(regionWeights)) {
-    cumulativeWeight += weight
-    if (randomValue <= cumulativeWeight) {
-      selectedRegion = region
-      break
-    }
-  }
-  
-  // 选择该区域内的国家
-  const countriesInRegion = providerInfo.countries[selectedRegion] || []
-  const randomCountryIndex = Math.floor(Math.random() * countriesInRegion.length)
-  const country = countriesInRegion[randomCountryIndex] || '未知'
-  
-  return { region: selectedRegion, country }
-}
-
-// 检测碳排放量
-async function checkCarbon() {
-  if (!domain.value) return
-  
-  loading.value = true
-  result.value = null
-  
-  try {
-    // 使用真实网站分析数据，传递选择的浏览器
-    const websiteData = await websiteAnalyzer.analyzeWebsite(domain.value, selectedBrowser.value)
-    console.log('网站分析结果:', websiteData)
+  setup() {
+    // 引用和状态
+    const domain = ref('')
+    const loading = ref(false)
+    const result = ref(null)
+    const selectedBrowser = ref('auto')
     
-    // 检查数据是否可用
-    if (websiteData.error) {
-      throw new Error(websiteData.error);
-    }
-    
-    // 提取分析数据
-    const provider = websiteData.provider || 'unknown'
-    
-    // 获取位置信息
-    let region = '未知'
-    let country = '未知'
-    
-    if (websiteData.location && !websiteData.location.error) {
-      region = websiteData.location.region || '未知区域'
-      country = websiteData.location.country || '未知国家'
-    }
-    
-    // 获取服务提供商信息
-    const providerInfo = providerRegions[provider] || providerRegions.other
-    
-    // 确定可再生能源比例
-    let renewablePercentage = null
-    if (websiteData.renewablePercentage !== null && websiteData.renewablePercentage !== undefined) {
-      renewablePercentage = websiteData.renewablePercentage
-    } else {
-      renewablePercentage = Math.floor(Math.random() * 
-        (providerInfo.renewableRange[1] - providerInfo.renewableRange[0] + 1)) + 
-        providerInfo.renewableRange[0]
-    }
-    
-    // 数据中心PUE
-    let dataCenterPUE = null
-    if (websiteData.pue !== null && websiteData.pue !== undefined) {
-      dataCenterPUE = websiteData.pue
-    } else {
-      const [minPUE, maxPUE] = providerInfo.pueRange
-      dataCenterPUE = parseFloat((Math.random() * (maxPUE - minPUE) + minPUE).toFixed(2))
-    }
-    
-    // 页面大小 (KB) - 使用真实测量值或显示无法获取
-    const pageSize = websiteData.pageSize || null
-    if (pageSize === null) {
-      throw new Error('无法获取页面大小数据')
-    }
-    
-    // 确定页面类型 (基于域名特征)
-    let estimatedPageType = 'standard'
-    if (domain.value.includes('shop') || domain.value.includes('store')) {
-      estimatedPageType = 'ecommerce'
-    } else if (domain.value.includes('blog') || domain.value.includes('news')) {
-      estimatedPageType = 'blog'
-    } else if (domain.value.includes('video') || domain.value.includes('media')) {
-      estimatedPageType = 'media'
-    } else if (domain.value.includes('app') || domain.value.includes('dashboard')) {
-      estimatedPageType = 'webapp'
-    }
-    
-    // 检查是否有能源和碳排放数据
-    const hasEnergyData = 
-      websiteData.energyIntensity !== null && 
-      websiteData.energyIntensity !== undefined && 
-      websiteData.dataCenterEnergy !== null && 
-      websiteData.dataCenterEnergy !== undefined
-    
-    // 如果没有能源数据，则计算
-    let energyIntensity, dataCenterEnergy, transmissionEnergy, deviceEnergy,
-        dataTransferCarbon, networkCarbon, clientCarbon, totalCarbonEmission,
-        monthlyCarbonEmission, annualCarbonEmission, treesNeeded, isGreen
-    
-    if (hasEnergyData && websiteData.totalCarbonEmission) {
-      // 使用后端计算的数据
-      energyIntensity = websiteData.energyIntensity
-      dataCenterEnergy = websiteData.dataCenterEnergy
-      transmissionEnergy = websiteData.transmissionEnergy
-      deviceEnergy = websiteData.deviceEnergy
-      dataTransferCarbon = websiteData.dataTransferCarbon
-      networkCarbon = websiteData.networkCarbon
-      clientCarbon = websiteData.clientCarbon
-      totalCarbonEmission = websiteData.totalCarbonEmission
-      monthlyCarbonEmission = websiteData.monthlyCarbonEmission
-      annualCarbonEmission = websiteData.annualCarbonEmission
-      treesNeeded = websiteData.treesNeeded
-      isGreen = websiteData.isGreen
-    } else if (pageSize > 0) {
-      // 如果后端没有计算，但我们有页面大小，则计算
-      // 数据传输计算 (考虑缓存)
-      const pageSizeInGB = pageSize / 1024 / 1024
-      const adjustedPageSizeInGB = pageSizeInGB * (1 - globalConstants.cachingEfficiency)
-      
-      // 根据页面类型和大小确定能源强度 (kWh/GB)
-      const baseEnergyIntensity = globalConstants.averageCarbonIntensity
-      const adjustedEI = baseEnergyIntensity * (1 / providerInfo.serverEfficiency) * dataCenterPUE
-      energyIntensity = parseFloat(adjustedEI.toFixed(2))
-      
-      // 计算能源消耗
-      dataCenterEnergy = adjustedPageSizeInGB * (energyIntensity / dataCenterPUE)
-      transmissionEnergy = adjustedPageSizeInGB * globalConstants.averageTransmissionPerGB
-      deviceEnergy = adjustedPageSizeInGB * globalConstants.averageDevicePerGB
-      
-      // 考虑国家电网碳强度
-      const countryCarbonValue = countryCarbonIntensity[country] || globalConstants.averageCarbonIntensity
-      
-      // 计算碳排放量
-      dataTransferCarbon = dataCenterEnergy * (
-        (renewablePercentage / 100) * globalConstants.greenEnergyCarbonIntensity + 
-        ((100 - renewablePercentage) / 100) * countryCarbonValue
-      )
-      
-      networkCarbon = transmissionEnergy * globalConstants.averageCarbonIntensity
-      clientCarbon = deviceEnergy * globalConstants.averageCarbonIntensity
-      
-      // 计算碳排放总量 (单位：g CO2)
-      totalCarbonEmission = dataTransferCarbon + networkCarbon + clientCarbon
-      
-      // 估计月访问量
-      let estimatedMonthlyVisits = globalConstants.averageMonthlyVisits
-      
-      if (domain.value.includes('shop') || domain.value.includes('news')) {
-        estimatedMonthlyVisits *= 2.5
-      } else if (domain.value.includes('blog')) {
-        estimatedMonthlyVisits *= 1.2
-      } else if (domain.value.includes('app')) {
-        estimatedMonthlyVisits *= 3
-      }
-      
-      // 计算月度和年度碳排放量
-      monthlyCarbonEmission = (totalCarbonEmission * estimatedMonthlyVisits) / 1000 // 单位：kg CO2
-      annualCarbonEmission = monthlyCarbonEmission * 12
-      
-      // 计算需要种植多少棵树来抵消碳排放
-      treesNeeded = Math.round(annualCarbonEmission / globalConstants.treeCO2PerYear)
-      
-      // 确定是否为绿色网站
-      isGreen = renewablePercentage >= globalConstants.greenEnergyThreshold
-    } else {
-      // 如果没有页面大小，无法计算能源数据
-      throw new Error('无法获取足够数据计算碳排放')
-    }
-    
-    // 获取性能指标 (使用真实测量，没有则显示无法获取)
-    let performance = null
-    if (websiteData.performance && !websiteData.performance.error && !websiteData.performance.measurable === false) {
-      performance = websiteData.performance
-    } else {
-      performance = {
-        fcp: null,
-        lcp: null,
-        cls: null,
-        fid: null,
-        ttfb: null,
-        measurable: false
-      }
-    }
-    
-    // 获取优化建议
-    const suggestions = websiteData.suggestions || [
-      '无法获取性能指标，无法提供针对性优化建议',
-      '确保网站可访问并正确配置',
-      '考虑使用CDN分发静态资源，减少数据传输距离和能耗',
-      '实施高效的HTTP缓存策略，延长缓存有效期减少重复请求'
-    ]
-    
-    // 设置结果
-    result.value = {
-      provider,
-      region,
-      country,
-      pageSize,
-      energyIntensity,
-      dataCenterEnergy,
-      transmissionEnergy,
-      deviceEnergy,
-      dataTransferCarbon,
-      networkCarbon,
-      clientCarbon,
-      totalCarbonEmission,
-      renewablePercentage,
-      monthlyCarbonEmission,
-      annualCarbonEmission,
-      treesNeeded,
-      isGreen,
-      performance,
-      suggestions,
-      pue: dataCenterPUE,
-      estimatedPageType,
-      // 添加新的评分指标
-      carbonFootprintScore: websiteData.carbonFootprintScore,
-      energyEfficiencyScore: websiteData.energyEfficiencyScore,
-      cachingEfficiency: websiteData.cachingEfficiency,
-      requestCount: performance?.requestCount || 0,
-      domainCount: performance?.domainCount || 0
-    }
-    
-    // 更新UI
-    await nextTick()
-    if (heatmapRef.value) {
-      initHeatmap()
-    }
-  } catch (error) {
-    console.error('碳排放检测错误:', error)
-    // 显示错误信息给用户
-    ElMessage.error(`检测失败: ${error.message || '服务器错误'}`)
-  } finally {
-    loading.value = false
-  }
-}
-
-// 初始化热图
-function initHeatmap() {
-  if (!heatmapRef.value) {
-    console.error('热图容器引用不存在')
-    return
-  }
-  
-  try {
-    if (heatmapChart) {
-      heatmapChart.dispose()
-    }
-    
-    // 准备数据
-    const data = [
-      {name: '数据中心', value: result.value.dataTransferCarbon.toFixed(2), icon: 'server'},
-      {name: '网络传输', value: result.value.networkCarbon.toFixed(2), icon: 'cloud'},
-      {name: '客户端设备', value: result.value.clientCarbon.toFixed(2), icon: 'computer'}
-    ]
-    
-    // 检查数据是否有效
-    if (data.some(item => isNaN(parseFloat(item.value)))) {
-      console.error('碳排放数据包含无效值')
-      return
-    }
-    
-    // 按碳排放量排序
-    data.sort((a, b) => b.value - a.value)
-    
-    // 计算总排放和百分比
-    const totalEmission = parseFloat(result.value.totalCarbonEmission.toFixed(2))
-    data.forEach(item => {
-      item.percentage = ((parseFloat(item.value) / totalEmission) * 100).toFixed(1) + '%'
+    // 全局常量
+    const globalConstants = reactive({
+      averageEnergyConsumption: 1.8, // kWh/GB
+      averageTransmissionPerGB: 0.06, // kWh/GB
+      averageDevicePerGB: 0.15, // kWh/GB
+      averageCarbonIntensity: 442, // gCO2e/kWh (全球平均)
+      greenEnergyCarbonIntensity: 50, // gCO2e/kWh (绿色能源)
+      averageMonthlyVisits: 10000, // 每月平均访问量
+      cachingEfficiency: 0.3, // 缓存效率 (30%)
+      treeCO2PerYear: 22, // 每棵树每年吸收的CO2量 (kg)
+      bestPUE: 1.1, // 最佳数据中心PUE
+      averagePUE: 1.67, // 平均数据中心PUE
+      greenEnergyThreshold: 80 // 绿色能源使用比例阈值
     })
     
-    // 设置最大值 (略高于最高值便于展示)
-    const maxValue = Math.max(...data.map(item => parseFloat(item.value))) * 1.1
-    
-    console.log('初始化热图', { data, totalEmission, maxValue })
-    
-    // 创建图表
-    heatmapChart = echarts.init(heatmapRef.value)
-    
-    // 设置图表选项
-    const option = {
-      title: {
-        text: '碳排放分布',
-        left: 'center',
-        top: 10,
-        textStyle: {
-          fontSize: 16,
-          fontWeight: 'normal',
-          color: '#555'
-        }
-      },
-      tooltip: {
-        trigger: 'axis',
-        formatter: function(params) {
-          const data = params[0].data;
-          return `
-            <div style="padding: 8px">
-              <div style="font-weight: bold; margin-bottom: 5px">${data.name}</div>
-              <div>碳排放量: <span style="color: #34c759; font-weight: bold">${data.value} gCO2e</span></div>
-              <div>占比: <span style="color: #32ade6; font-weight: bold">${data.percentage}</span></div>
-            </div>
-          `;
-        },
-        axisPointer: {
-          type: 'shadow'
-        },
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-        padding: 10,
-        textStyle: {
-          color: '#333'
-        },
-        extraCssText: 'box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); border-radius: 8px;'
-      },
-      grid: {
-        top: 50,
-        right: 15,
-        bottom: 60,
-        left: 90,
-        containLabel: true
-      },
-      xAxis: {
-        type: 'value',
-        name: '碳排放量 (gCO2e)',
-        nameLocation: 'middle',
-        nameGap: 30,
-        nameTextStyle: {
-          color: '#666',
-          fontSize: 13
-        },
-        axisLine: {
-          show: true,
-          lineStyle: {
-            color: '#e0e0e0'
+    // 碳排放分析
+    async function checkCarbon() {
+      if (!domain.value) {
+        return
+      }
+      
+      loading.value = true
+      result.value = null
+      
+      try {
+        // 分析网站性能和碳排放
+        console.log(`开始分析网站: ${domain.value} (使用${selectedBrowser.value === 'auto' ? '自动选择浏览器' : selectedBrowser.value})`)
+        
+        // 获取使用的浏览器参数
+        const browserOption = selectedBrowser.value
+        
+        let performanceResult = null
+        let locationResult = null
+        let providerResult = null
+        let carbonResult = null
+        let hasError = false
+        let errorMessages = []
+        
+        // 1. 测量性能指标
+        try {
+          performanceResult = await measurePerformance(domain.value, browserOption)
+          
+          if (performanceResult.error) {
+            console.warn('性能测量警告:', performanceResult.error)
+            errorMessages.push(`性能指标: ${performanceResult.error}`)
+            hasError = true
           }
-        },
-        axisTick: {
-          show: false
-        },
-        axisLabel: {
-          color: '#666',
-          fontSize: 12,
-          formatter: '{value} g'
-        },
-        splitLine: {
-          lineStyle: {
-            type: 'dashed',
-            color: '#eee'
-          }
+        } catch (perfError) {
+          console.error('性能测量失败:', perfError)
+          errorMessages.push(`性能指标: ${perfError.message || '无法获取'}`)
+          hasError = true
         }
-      },
-      yAxis: {
-        type: 'category',
-        data: data.map(item => item.name),
-        axisLine: {
-          lineStyle: {
-            color: '#e0e0e0'
+        
+        // 2. 获取服务器位置
+        try {
+          locationResult = await getServerLocation(domain.value)
+          
+          if (locationResult.error) {
+            console.warn('位置获取警告:', locationResult.error)
+            errorMessages.push(`服务器位置: ${locationResult.error}`)
+            hasError = true
           }
-        },
-        axisTick: {
-          show: false
-        },
-        axisLabel: {
-          color: '#555',
-          fontSize: 13,
-          fontWeight: 'bold',
-          padding: [0, 15, 0, 0]
+        } catch (locError) {
+          console.error('位置获取失败:', locError)
+          errorMessages.push(`服务器位置: ${locError.message || '无法获取'}`)
+          hasError = true
         }
-      },
-      series: [{
-        type: 'bar',
-        data: data.map(item => ({
-          value: item.value,
-          name: item.name,
-          percentage: item.percentage,
-          itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-              { offset: 0, color: '#34c759' },
-              { offset: 1, color: '#32ade6' }
-            ])
-          },
-          emphasis: {
-            itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                { offset: 0, color: '#2fb14e' },
-                { offset: 1, color: '#2998cc' }
-              ])
+        
+        // 3. 分析服务提供商
+        try {
+          providerResult = await analyzeProvider(domain.value)
+          
+          if (providerResult.error) {
+            console.warn('提供商分析警告:', providerResult.error)
+            errorMessages.push(`服务提供商: ${providerResult.error}`)
+            hasError = true
+          }
+        } catch (provError) {
+          console.error('提供商分析失败:', provError)
+          errorMessages.push(`服务提供商: ${provError.message || '无法获取'}`)
+          hasError = true
+        }
+        
+        // 4. 计算碳排放 - 只在有足够的真实数据时进行
+        if (performanceResult && !performanceResult.error && locationResult && !locationResult.error) {
+          try {
+            const carbonParams = {
+              pageSize: performanceResult.pageSize || (performanceResult.performance?.pageSize) || 0,
+              country: locationResult?.country || 'unknown',
+              requestCount: performanceResult.requests || (performanceResult.performance?.requestCount) || 1,
+              domainCount: performanceResult.domainCount || (performanceResult.performance?.domainCount) || 1,
+              // 添加必要的参数
+              renewablePercentage: providerResult?.renewablePercentage || 0,
+              pue: providerResult?.pue || 1.67, // 使用平均PUE
+              responseTime: performanceResult.responseTime || (performanceResult.performance?.responseTime) || 0,
+              hasCompression: performanceResult.headers?.supportsCompression || false,
+              resourceStats: JSON.stringify(performanceResult.performance?.resourceStats || {}),
+              cacheControl: performanceResult.headers?.cacheControl || ''
             }
+            
+            // 确保主要参数有值
+            if (carbonParams.pageSize <= 0) {
+              throw new Error('页面大小不能为零或负值');
+            }
+            
+            carbonResult = await analyzeCarbonEmission(carbonParams)
+            
+            if (carbonResult.error) {
+              console.warn('碳排放计算警告:', carbonResult.error)
+              errorMessages.push(`碳排放计算: ${carbonResult.error}`)
+              hasError = true
+            }
+          } catch (carbonError) {
+            console.error('碳排放计算失败:', carbonError)
+            errorMessages.push(`碳排放计算: ${carbonError.message || '无法获取'}`)
+            hasError = true
           }
-        })),
-        barWidth: '60%',
-        barCategoryGap: '20%',
-        barGap: '30%',
-        itemStyle: {
-          borderRadius: [0, 8, 8, 0]
-        },
-        label: {
-          show: true,
-          position: 'right',
-          formatter: function(params) {
-            return `${params.data.value} (${params.data.percentage})`;
-          },
-          fontSize: 13,
-          color: '#333',
-          fontWeight: 'bold'
-        },
-        emphasis: {
-          label: {
-            fontSize: 14,
-            fontWeight: 'bold'
-          },
-          itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(0, 0, 0, 0.3)'
+        } else {
+          console.warn('缺少性能或位置数据，无法计算碳排放')
+          errorMessages.push('缺少性能或位置数据，无法计算碳排放')
+          hasError = true
+        }
+        
+        // 初始化结果对象 - 只包含真实数据
+        result.value = {
+          hasError,
+          errorMessages,
+          onlyRealData: true, // 标记只显示真实数据
+          provider: providerResult?.provider || 'unknown',
+          isGreen: false,
+          totalCarbonEmission: null,
+          monthlyCarbonEmission: null,
+          suggestions: []
+        }
+        
+        // 合并各种结果 - 只添加真实测量的数据
+        if (performanceResult && !performanceResult.error) {
+          result.value = {
+            ...result.value,
+            performance: performanceResult.performance,
+            pageSize: performanceResult.pageSize || performanceResult.performance?.pageSize
           }
-        },
-        animationDelay: function(idx) {
-          return idx * 200;
         }
-      }],
-      visualMap: {
-        show: false,
-        min: 0,
-        max: maxValue,
-        inRange: {
-          colorLightness: [0.8, 0.3]
+        
+        if (locationResult && !locationResult.error) {
+          result.value = {
+            ...result.value,
+            country: locationResult.country,
+            region: locationResult.region,
+            coordinates: locationResult.coordinates
+          }
         }
-      },
-      animation: true,
-      animationDuration: 1500,
-      animationEasing: 'cubicOut',
-      animationDelayUpdate: function(idx) {
-        return idx * 50;
+        
+        if (providerResult && !providerResult.error) {
+          result.value = {
+            ...result.value,
+            provider: providerResult.provider || 'unknown',
+            providerName: providerResult.providerName || '未知提供商',
+            renewablePercentage: providerResult.renewablePercentage,
+            pue: providerResult.pue,
+            isGreen: providerResult.renewablePercentage >= globalConstants.greenEnergyThreshold
+          }
+        }
+        
+        if (carbonResult && !carbonResult.error) {
+          result.value = {
+            ...result.value,
+            ...carbonResult,
+            // 明确标记估算数据
+            estimatedData: carbonResult.dataSourceInfo?.estimatedValues || []
+          }
+        }
+        
+        console.log('分析完成:', result.value)
+        
+        // 移除热力图初始化
+        nextTick(() => {
+          console.log('应用已成功加载')
+        })
+      } catch (error) {
+        console.error('分析过程中出错:', error)
+        result.value = {
+          error: error.message,
+          isGreen: false,
+          totalCarbonEmission: null,
+          monthlyCarbonEmission: null,
+          annualCarbonEmission: null,
+          performance: {
+            measurable: false,
+            error: error.message
+          },
+          provider: 'unknown',
+          renewablePercentage: null,
+          suggestions: [],
+          region: null,
+          country: null,
+          coordinates: null,
+          dataTransferCarbon: null,
+          networkCarbon: null,
+          clientCarbon: null,
+          dataCenterEnergy: null,
+          transmissionEnergy: null,
+          deviceEnergy: null,
+          hasError: true,
+          errorMessages: [error.message]
+        }
+      } finally {
+        loading.value = false
       }
-    };
+    }
     
-    // 应用选项
-    heatmapChart.setOption(option);
-    console.log('热图初始化完成')
+    // 监听窗口大小变化
+    onMounted(() => {
+      console.log('应用已挂载')
+    })
     
-    // 确保图表适应容器大小
-    setTimeout(() => {
-      if (heatmapChart) {
-        heatmapChart.resize();
+    return {
+      domain,
+      loading,
+      result,
+      globalConstants,
+      selectedBrowser,
+      checkCarbon
+    }
+  },
+  
+  methods: {
+    // 格式化性能指标名称
+    formatMetricName(metric) {
+      const metricNames = {
+        fcp: 'First Contentful Paint',
+        lcp: 'Largest Contentful Paint',
+        cls: 'Cumulative Layout Shift',
+        fid: 'First Input Delay',
+        ttfb: 'Time to First Byte'
       }
-    }, 200);
-  } catch (error) {
-    console.error('初始化热图时出错:', error)
-    // 在容器中显示错误消息
-    if (heatmapRef.value) {
-      heatmapRef.value.innerHTML = `
-        <div style="padding: 20px; text-align: center; color: #ff3b30;">
-          <p>加载碳排放图表时出错</p>
-          <small>${error.message || '未知错误'}</small>
-        </div>
-      `;
+      
+      return metricNames[metric] || metric
+    },
+    
+    // 格式化性能指标值
+    formatMetricValue(metric, value) {
+      if (value === null || value === undefined) {
+        return '无法获取'
+      }
+      
+      if (metric === 'fcp' || metric === 'lcp') {
+        return `${value.toFixed(2)}s`
+      } else if (metric === 'cls') {
+        return value.toFixed(3)
+      } else {
+        return `${Math.round(value)}ms`
+      }
+    },
+    
+    // 获取性能指标评级
+    getMetricGrade(metric, value) {
+      if (value === null || value === undefined) {
+        return 'unknown'
+      }
+      
+      // 基于Web核心指标标准进行性能评级
+      if (metric === 'fcp') {
+        return value < 1.8 ? 'good' : value < 3 ? 'average' : 'poor'
+      } else if (metric === 'lcp') {
+        return value < 2.5 ? 'good' : value < 4 ? 'average' : 'poor'
+      } else if (metric === 'cls') {
+        return value < 0.1 ? 'good' : value < 0.25 ? 'average' : 'poor'
+      } else if (metric === 'fid') {
+        return value < 100 ? 'good' : value < 300 ? 'average' : 'poor'
+      } else if (metric === 'ttfb') {
+        return value < 200 ? 'good' : value < 500 ? 'average' : 'poor'
+      }
+      return 'average'
+    },
+    
+    // 获取进度条样式
+    getProgressStyle(metric, value) {
+      if (value === null || value === undefined) {
+        return { width: `0%` }
+      }
+      
+      let percentage
+      
+      if (metric === 'cls') {
+        // CLS是越小越好，0.1是理想值，0.25是最大可接受值
+        percentage = Math.min(100, (value / 0.25) * 100)
+      } else if (metric === 'fcp') {
+        // FCP在1秒以内为理想，3秒以上为较差
+        percentage = Math.min(100, (value / 3) * 100)
+      } else if (metric === 'lcp') {
+        // LCP在2.5秒以内为理想，4秒以上为较差
+        percentage = Math.min(100, (value / 4) * 100)
+      } else if (metric === 'fid') {
+        // FID在100ms以内为理想，300ms以上为较差
+        percentage = Math.min(100, (value / 300) * 100)
+      } else {
+        // 默认值
+        percentage = 50
+      }
+      
+      return { width: `${percentage}%` }
+    },
+    
+    // 获取进度条类
+    getProgressClass(metric, value) {
+      return this.getMetricGrade(metric, value)
+    },
+    
+    // 格式化数字
+    formatNumber(value) {
+      if (value === null || value === undefined) return '无法获取'
+      return parseFloat(value).toFixed(2)
+    },
+    
+    // 获取碳排放分数样式类
+    getCarbonScoreClass(score) {
+      if (!score) return 'average'
+      score = parseInt(score)
+      if (score <= 30) return 'excellent'
+      if (score <= 50) return 'good'
+      if (score <= 70) return 'moderate'
+      return 'poor'
+    },
+    
+    // 获取能源效率评分样式类
+    getEnergyScoreClass(score) {
+      if (!score) return 'average'
+      score = parseInt(score)
+      if (score >= 80) return 'excellent'
+      if (score >= 60) return 'good'
+      if (score >= 40) return 'moderate'
+      return 'poor'
+    },
+    
+    // 获取指标样式类
+    getMetricClass(metric, value) {
+      return this.getMetricGrade(metric, value)
+    },
+    
+    // 判断是否为时间指标
+    isTimingMetric(metric) {
+      return ['fcp', 'lcp', 'fid', 'ttfb'].includes(metric)
+    },
+    
+    // 获取进度条样式
+    getProgressBarStyle(metric, value) {
+      if (value === null || value === undefined) {
+        return { width: '0%' }
+      }
+      
+      let percentage = 0
+      let grade = this.getMetricGrade(metric, value)
+      
+      if (metric === 'fcp' || metric === 'lcp') {
+        // 转换为毫秒
+        const ms = value * 1000
+        percentage = Math.min(100, Math.max(10, (ms / 5000) * 100))
+      } else if (metric === 'cls') {
+        percentage = Math.min(100, Math.max(10, (value / 0.25) * 100))
+      } else if (metric === 'fid' || metric === 'ttfb') {
+        percentage = Math.min(100, Math.max(10, (value / 1000) * 100))
+      }
+      
+      return {
+        width: `${percentage}%`,
+        backgroundColor: grade === 'good' ? 'var(--color-good)' : 
+                         grade === 'average' ? 'var(--color-moderate)' : 
+                         'var(--color-poor)'
+      }
+    },
+    
+    // 获取安全评分样式类
+    getSecurityScoreClass(score) {
+      if (!score && score !== 0) return 'poor'
+      if (score >= 80) return 'excellent'
+      if (score >= 60) return 'good'
+      if (score >= 40) return 'moderate'
+      return 'poor'
+    },
+    
+    // 格式化安全头信息
+    formatSecurityHeader(header) {
+      const headerNames = {
+        'strict-transport-security': 'HTTP严格传输安全',
+        'content-security-policy': '内容安全策略',
+        'x-content-type-options': '内容类型选项',
+        'x-frame-options': '框架选项',
+        'x-xss-protection': 'XSS保护'
+      }
+      
+      return headerNames[header] || header
+    },
+    
+    // 获取碳排放等级描述
+    getCarbonScoreDesc(score) {
+      if (!score) return '评估中'
+      score = parseInt(score)
+      if (score <= 30) return '非常环保'
+      if (score <= 50) return '较为环保'
+      if (score <= 70) return '一般水平'
+      return '需要改进'
+    },
+    
+    // 获取能源效率评分描述
+    getEnergyScoreDesc(score) {
+      if (!score) return '评估中'
+      score = parseInt(score)
+      if (score >= 80) return '高效利用'
+      if (score >= 60) return '良好效率'
+      if (score >= 40) return '一般效率'
+      return '低效利用'
+    },
+    
+    // 获取碳排放等价物描述
+    getCarbonEquivalent(emission) {
+      if (!emission) return '无法计算'
+      
+      if (emission < 0.5) {
+        return '少于一封电子邮件的碳排放'
+      } else if (emission < 1) {
+        return '约等于一封电子邮件的碳排放'
+      } else if (emission < 3) {
+        return '约等于浏览一个简单网页'
+      } else if (emission < 10) {
+        return '约等于观看1分钟高清视频'
+      } else {
+        return `约等于观看${Math.round(emission/10)}分钟高清视频`
+      }
+    },
+    
+    // 格式化能源消耗值
+    formatEnergy(value) {
+      if (!value) return '0 Wh'
+      return (value * 1000).toFixed(3) + ' Wh'
+    },
+    
+    // 获取缓存效率描述
+    getCachingEfficiency(value) {
+      if (!value) return '标准优化'
+      const percent = (value * 100).toFixed(0)
+      if (value < 0.2) return `基础优化 (${percent}%)`
+      if (value < 0.4) return `标准优化 (${percent}%)`
+      if (value < 0.6) return `良好优化 (${percent}%)`
+      return `优秀优化 (${percent}%)`
+    },
+    
+    // 格式化文本长度
+    formatTextLength(length) {
+      if (!length && length !== 0) return 'N/A';
+      if (length > 10000) return (length / 1000).toFixed(1) + 'K 字符';
+      return length + ' 字符';
+    },
+    
+    // 获取内容质量评分的样式类
+    getQualityScoreClass(score) {
+      if (!score && score !== 0) return 'poor';
+      if (score >= 80) return 'excellent';
+      if (score >= 60) return 'good';
+      if (score >= 40) return 'moderate';
+      return 'poor';
+    },
+    
+    // 获取元数据状态
+    getMetadataStatus(metadata) {
+      if (!metadata) return '缺失';
+      
+      const hasCount = (metadata.hasTitle ? 1 : 0) + 
+                       (metadata.hasDescription ? 1 : 0) + 
+                       (metadata.hasKeywords ? 1 : 0);
+      
+      if (hasCount === 3) return '完整';
+      if (hasCount >= 1) return '部分';
+      return '缺失';
+    },
+    
+    // 获取元数据的样式类
+    getMetadataClass(metadata) {
+      if (!metadata) return 'poor';
+      
+      const hasCount = (metadata.hasTitle ? 1 : 0) + 
+                       (metadata.hasDescription ? 1 : 0) + 
+                       (metadata.hasKeywords ? 1 : 0);
+      
+      if (hasCount === 3) return 'good';
+      if (hasCount >= 1) return 'moderate';
+      return 'poor';
+    },
+    
+    // 获取资源类型的颜色
+    getResourceColor(type) {
+      const colors = {
+        html: '#e34c26',
+        css: '#563d7c',
+        js: '#f1e05a',
+        images: '#4caf50',
+        fonts: '#ff9800',
+        other: '#607d8b'
+      };
+      return colors[type] || '#607d8b';
+    },
+    
+    // 格式化资源类型名称
+    formatResourceType(type) {
+      const types = {
+        html: 'HTML',
+        css: 'CSS',
+        js: 'JavaScript',
+        images: '图像',
+        fonts: '字体',
+        other: '其他'
+      };
+      return types[type] || type;
+    },
+    
+    // 计算资源条形图的宽度
+    getResourceBarWidth(count, allStats) {
+      if (!allStats) return '0%';
+      const total = Object.values(allStats).reduce((sum, c) => sum + c, 0);
+      if (total === 0) return '0%';
+      const percentage = (count / total) * 100;
+      return Math.max(percentage, 3) + '%'; // 确保即使很小的值也有最小宽度
+    },
+    
+    // 获取性能指标（过滤掉非性能指标）
+    getPerformanceMetrics(performance) {
+      if (!performance) return {};
+      
+      // 只选择性能指标来显示
+      const metricsToShow = [
+        'fcp', 'lcp', 'cls', 'fid', 'ttfb'
+      ];
+      
+      return Object.fromEntries(
+        Object.entries(performance)
+          .filter(([key]) => metricsToShow.includes(key))
+      );
+    },
+    
+    // 格式化文件大小
+    formatFileSize(bytes) {
+      if (!bytes && bytes !== 0) return 'N/A';
+      bytes = Number(bytes);
+      
+      if (bytes >= 1048576) {
+        return (bytes / 1048576).toFixed(2) + ' MB';
+      }
+      if (bytes >= 1024) {
+        return (bytes / 1024).toFixed(2) + ' KB';
+      }
+      return bytes + ' B';
+    },
+    
+    // 获取建议图标
+    getSuggestionIcon(type) {
+      const icons = {
+        'image': 'fa-image',
+        'script': 'fa-code',
+        'font': 'fa-font',
+        'cdn': 'fa-server',
+        'cache': 'fa-database',
+        'compress': 'fa-file-archive',
+        'performance': 'fa-tachometer-alt',
+        'default': 'fa-lightbulb'
+      };
+      return icons[type] || icons.default;
     }
   }
-}
-
-// 格式化性能指标名称
-function formatMetricName(metric) {
-  const metricNames = {
-    fcp: 'First Contentful Paint',
-    lcp: 'Largest Contentful Paint',
-    cls: 'Cumulative Layout Shift',
-    fid: 'First Input Delay',
-    ttfb: 'Time to First Byte'
-  }
-  
-  return metricNames[metric] || metric
-}
-
-// 格式化性能指标值
-function formatMetricValue(metric, value) {
-  if (value === null || value === undefined) {
-    return '无法获取'
-  }
-  
-  if (metric === 'fcp' || metric === 'lcp') {
-    return `${value.toFixed(2)}s`
-  } else if (metric === 'cls') {
-    return value.toFixed(3)
-  } else {
-    return `${Math.round(value)}ms`
-  }
-}
-
-// 获取性能指标评级
-function getMetricGrade(metric, value) {
-  if (value === null || value === undefined) {
-    return 'unknown'
-  }
-  
-  // 基于Web核心指标标准进行性能评级
-  if (metric === 'fcp') {
-    return value < 1.8 ? 'good' : value < 3 ? 'average' : 'poor'
-  } else if (metric === 'lcp') {
-    return value < 2.5 ? 'good' : value < 4 ? 'average' : 'poor'
-  } else if (metric === 'cls') {
-    return value < 0.1 ? 'good' : value < 0.25 ? 'average' : 'poor'
-  } else if (metric === 'fid') {
-    return value < 100 ? 'good' : value < 300 ? 'average' : 'poor'
-  } else if (metric === 'ttfb') {
-    return value < 200 ? 'good' : value < 500 ? 'average' : 'poor'
-  }
-  return 'average'
-}
-
-// 获取进度条样式
-function getProgressStyle(metric, value) {
-  if (value === null || value === undefined) {
-    return { width: `0%` }
-  }
-  
-  let percentage
-  
-  if (metric === 'cls') {
-    // CLS是越小越好，0.1是理想值，0.25是最大可接受值
-    percentage = Math.min(100, (value / 0.25) * 100)
-  } else if (metric === 'fcp') {
-    // FCP在1秒以内为理想，3秒以上为较差
-    percentage = Math.min(100, (value / 3) * 100)
-  } else if (metric === 'lcp') {
-    // LCP在2.5秒以内为理想，4秒以上为较差
-    percentage = Math.min(100, (value / 4) * 100)
-  } else if (metric === 'fid') {
-    // FID在100ms以内为理想，300ms以上为较差
-    percentage = Math.min(100, (value / 300) * 100)
-  } else if (metric === 'ttfb') {
-    // TTFB在200ms以内为理想，500ms以上为较差
-    percentage = Math.min(100, (value / 500) * 100)
-  } else {
-    percentage = 50
-  }
-  
-  return { width: `${percentage}%` }
-}
-
-// 监听窗口大小变化
-onMounted(() => {
-  window.addEventListener('resize', () => {
-    if (heatmapChart) {
-      heatmapChart.resize()
-    }
-  })
-})
-
-// 格式化数字
-function formatNumber(num) {
-  if (num === null || num === undefined) return '0'
-  return parseFloat(num).toFixed(2)
-}
-
-// 获取碳足迹评分的样式类
-function getCarbonScoreClass(score) {
-  if (!score) return 'moderate'
-  score = parseInt(score)
-  if (score <= 30) return 'excellent'
-  if (score <= 50) return 'good'
-  if (score <= 70) return 'moderate'
-  return 'poor'
-}
-
-// 获取能源效率评分的样式类
-function getEnergyScoreClass(score) {
-  if (!score) return 'moderate'
-  score = parseInt(score)
-  if (score >= 80) return 'excellent'
-  if (score >= 60) return 'good'
-  if (score >= 40) return 'moderate'
-  return 'poor'
-}
-
-// 获取碳足迹评分描述
-function getCarbonScoreDesc(score) {
-  if (!score) return '评估中'
-  score = parseInt(score)
-  if (score <= 30) return '非常环保'
-  if (score <= 50) return '较为环保'
-  if (score <= 70) return '一般水平'
-  return '需要改进'
-}
-
-// 获取能源效率评分描述
-function getEnergyScoreDesc(score) {
-  if (!score) return '评估中'
-  score = parseInt(score)
-  if (score >= 80) return '高效利用'
-  if (score >= 60) return '良好效率'
-  if (score >= 40) return '一般效率'
-  return '低效利用'
-}
-
-// 获取碳排放等价物描述
-function getCarbonEquivalent(emission) {
-  if (!emission) return '无法计算'
-  
-  if (emission < 0.5) {
-    return '少于一封电子邮件的碳排放'
-  } else if (emission < 1) {
-    return '约等于一封电子邮件的碳排放'
-  } else if (emission < 3) {
-    return '约等于浏览一个简单网页'
-  } else if (emission < 10) {
-    return '约等于观看1分钟高清视频'
-  } else {
-    return `约等于观看${Math.round(emission/10)}分钟高清视频`
-  }
-}
-
-// 格式化能源消耗值
-function formatEnergy(value) {
-  if (!value) return '0 Wh'
-  return (value * 1000).toFixed(3) + ' Wh'
-}
-
-// 获取缓存效率描述
-function getCachingEfficiency(value) {
-  if (!value) return '标准优化'
-  const percent = (value * 100).toFixed(0)
-  if (value < 0.2) return `基础优化 (${percent}%)`
-  if (value < 0.4) return `标准优化 (${percent}%)`
-  if (value < 0.6) return `良好优化 (${percent}%)`
-  return `优秀优化 (${percent}%)`
 }
 </script>
 
@@ -1436,56 +1242,146 @@ function getCachingEfficiency(value) {
 }
 
 .result-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 100%;
   margin-bottom: 40px;
 }
 
 .summary-card {
-  display: flex;
-  align-items: center;
-  padding: 35px;
-  border-radius: 20px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-  position: relative;
+  flex: 1;
+  min-width: 300px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+  display: block;
+  padding: 0;
+  align-items: initial;
+  margin: 0;
 }
 
 .summary-card.green {
-  background: linear-gradient(135deg, #34c759, #32ade6);
-  color: white;
+  border-top: 5px solid #4caf50;
+  background: #fff;
 }
 
 .summary-card.red {
-  background: linear-gradient(135deg, #ff3b30, #ff9500);
-  color: white;
+  border-top: 5px solid #f44336;
+  background: #fff;
 }
 
-.summary-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background: 
-    radial-gradient(circle at 70% 30%, rgba(255,255,255,0.2) 0%, transparent 70%),
-    radial-gradient(circle at 30% 70%, rgba(255,255,255,0.15) 0%, transparent 50%);
-}
-
+/* 移除冲突的伪元素 */
+.summary-card::before,
 .summary-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  padding: 2px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  display: none;
+  content: none;
+}
+
+.summary-header {
+  padding: 15px 20px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.summary-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.summary-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.summary-content {
+  padding: 20px;
+}
+
+.summary-section {
+  margin-bottom: 25px;
+}
+
+.summary-section:last-child {
+  margin-bottom: 0;
+}
+
+/* 重置原来summary-content的样式 */
+.summary-content h2,
+.summary-content p {
+  margin: 0;
+  text-align: left;
+  color: #333;
+  text-shadow: none;
+}
+
+/* 总碳排放显示 */
+.total-emission {
+  display: flex;
+  align-items: flex-start;
+}
+
+.carbon-icon {
+  margin-right: 15px;
+  color: #555;
+  padding-top: 5px;
+}
+
+.carbon-details {
+  flex: 1;
+}
+
+.total-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.total-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+.total-breakdown {
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  padding: 12px 15px;
+}
+
+.total-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.total-label {
+  color: #555;
+  font-weight: 500;
+}
+
+.total-item .total-value {
+  font-size: 16px;
+  margin-bottom: 0;
+}
+
+.total-info {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 12px;
+  padding-left: 5px;
+}
+
+/* 确保每个section内的最后一个元素没有margin-bottom */
+.summary-section > *:last-child {
+  margin-bottom: 0;
 }
 
 .summary-icon {
@@ -2365,5 +2261,386 @@ function getCachingEfficiency(value) {
 .score-desc {
   font-size: 13px;
   color: #888;
+}
+
+/* 错误提示样式 */
+.error-alerts {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.error-alert {
+  background-color: #fff8f8;
+  border-left: 4px solid #ff5252;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.error-alert h3 {
+  color: #d32f2f;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.error-alert ul {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.error-alert li {
+  margin-bottom: 5px;
+  color: #616161;
+}
+
+/* 数据真实性提示样式 */
+.data-note {
+  background-color: #f0f4ff;
+  border-left: 4px solid #5c6bc0;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.estimated-data-tag {
+  display: inline-block;
+  background-color: #ffecb3;
+  color: #795548;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-weight: bold;
+}
+
+/* 能源消耗详情 */
+.energy-breakdown {
+  background-color: #f5f7fa;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.energy-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.energy-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.energy-item {
+  flex: 1;
+  min-width: 120px;
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.energy-label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.energy-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* 详情卡片样式 */
+.detail-card {
+  flex: 1;
+  min-width: 300px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.detail-header {
+  padding: 15px 20px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.detail-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.detail-content {
+  padding: 20px;
+}
+
+/* 托管提供商信息 */
+.provider-info {
+  display: flex;
+  align-items: flex-start;
+}
+
+.provider-icon {
+  margin-right: 15px;
+  color: #555;
+  padding-top: 5px;
+}
+
+.provider-details {
+  flex: 1;
+}
+
+.provider-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.provider-stats {
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  padding: 12px 15px;
+}
+
+.provider-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.provider-label {
+  color: #555;
+  font-weight: 500;
+}
+
+.provider-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .result-summary {
+    flex-direction: column;
+  }
+  
+  .total-emission,
+  .provider-info {
+    flex-direction: column;
+  }
+  
+  .carbon-icon,
+  .provider-icon {
+    margin-right: 0;
+    margin-bottom: 15px;
+  }
+  
+  .energy-items {
+    flex-direction: column;
+  }
+  
+  .energy-item {
+    width: 100%;
+  }
+}
+
+/* 美化绿色托管信息卡片 */
+.hosting-info-card {
+  background: linear-gradient(145deg, #ffffff, #f5f7fa);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.hosting-info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+}
+
+.hosting-info-card .detail-header {
+  background: linear-gradient(90deg, #34c759, #4cd964);
+  color: white;
+  padding: 18px 20px;
+}
+
+.hosting-info-card .detail-title {
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.hosting-info-card .detail-content {
+  padding: 25px;
+}
+
+.provider-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.provider-icon.green-provider {
+  background: linear-gradient(135deg, #34c759, #32ade6);
+  color: white;
+}
+
+.provider-icon.standard-provider {
+  background: linear-gradient(135deg, #ff9500, #ff3b30);
+  color: white;
+}
+
+.provider-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.green-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #34c759;
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  margin-left: 10px;
+  font-weight: 500;
+}
+
+.green-badge i {
+  margin-right: 4px;
+}
+
+.provider-location {
+  font-size: 14px;
+  color: #666;
+  display: flex;
+  align-items: center;
+}
+
+.provider-location i {
+  margin-right: 6px;
+  color: #ff9500;
+}
+
+.provider-stats {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.provider-stat-card {
+  flex: 1;
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.provider-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.provider-stat-card.renewable {
+  border-left: 4px solid #34c759;
+}
+
+.provider-stat-card.efficiency {
+  border-left: 4px solid #007aff;
+}
+
+.provider-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 18px;
+}
+
+.renewable .provider-stat-icon {
+  background-color: rgba(52, 199, 89, 0.15);
+  color: #34c759;
+}
+
+.efficiency .provider-stat-icon {
+  background-color: rgba(0, 122, 255, 0.15);
+  color: #007aff;
+}
+
+.provider-stat-content {
+  flex: 1;
+}
+
+.provider-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  line-height: 1.2;
+}
+
+.provider-stat-label {
+  font-size: 12px;
+  color: #777;
+  margin-top: 3px;
+}
+
+.green-metric {
+  margin-top: 10px;
+}
+
+.green-metric-bar-container {
+  height: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.green-metric-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ff3b30, #ff9500, #34c759);
+  border-radius: 4px;
+  transition: width 1.5s cubic-bezier(0.26, 0.86, 0.44, 0.985);
+}
+
+.green-metric-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #777;
+}
+
+/* 禁用热力图 */
+.heatmap {
+  display: none;
 }
 </style> 

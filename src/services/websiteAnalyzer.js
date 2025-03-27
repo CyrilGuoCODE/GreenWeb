@@ -301,6 +301,35 @@ export async function analyzeWebsiteSeparately(domain, browser = 'auto') {
   }
 }
 
+/**
+ * 分析网站碳排放
+ * @param {Object} params - 碳排放分析参数
+ * @param {number} params.pageSize - 页面大小(KB)
+ * @param {string} params.country - 服务器所在国家代码
+ * @param {number} params.requestCount - 请求数量
+ * @param {number} params.domainCount - 域名数量
+ * @param {number} [params.renewablePercentage] - 可再生能源使用百分比
+ * @param {number} [params.pue] - 数据中心PUE
+ * @returns {Promise<Object>} 碳排放分析结果
+ */
+export async function analyzeCarbonEmission(params) {
+  try {
+    const response = await axios.get(`${API_URL}/carbon`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('碳排放分析失败:', error);
+    return { 
+      error: '无法分析碳排放',
+      details: error.message,
+      measurable: false,
+      totalCarbonEmission: 0,
+      monthlyCarbonEmission: 0,
+      annualCarbonEmission: 0,
+      isGreen: false
+    };
+  }
+}
+
 export default {
   analyzeWebsite,
   analyzeWebsiteSeparately,
@@ -308,5 +337,6 @@ export default {
   measurePageSize,
   measurePerformance,
   analyzeProvider,
-  getHttpHeaders
+  getHttpHeaders,
+  analyzeCarbonEmission
 }; 
