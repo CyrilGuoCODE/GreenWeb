@@ -766,7 +766,28 @@ export default {
         lcp: 'Largest Contentful Paint',
         cls: 'Cumulative Layout Shift',
         fid: 'First Input Delay',
-        ttfb: 'Time to First Byte'
+        ttfb: 'Time to First Byte',
+        responseTime: 'Response Time',
+        pageSize: 'Page Size',
+        totalResourceSize: 'Total Resource Size',
+        requestCount: 'Request Count',
+        domainCount: 'Domain Count',
+        usesHttps: 'HTTPS Usage',
+        serverType: 'Server Type',
+        supportsCompression: 'Compression Support',
+        supportsCaching: 'Caching Support',
+        usesCdn: 'CDN Usage',
+        cdnProvider: 'CDN Provider',
+        resourceStats: 'Resource Statistics',
+        securityScore: 'Security Score',
+        energyConsumption: 'Energy Consumption',
+        dataCenterEnergy: 'Data Center Energy',
+        transmissionEnergy: 'Transmission Energy',
+        deviceEnergy: 'Device Energy',
+        carbonEmission: 'Carbon Emission',
+        annualCarbonEmission: 'Annual Carbon Emission',
+        renewablePercentage: 'Renewable Energy Percentage',
+        pue: 'Power Usage Effectiveness'
       }
       
       return metricNames[metric] || metric
@@ -775,15 +796,63 @@ export default {
     // 格式化性能指标值
     formatMetricValue(metric, value) {
       if (value === null || value === undefined) {
-        return '无法获取'
+        return '无法获取';
       }
       
+      // 时间相关指标
       if (metric === 'fcp' || metric === 'lcp') {
-        return `${value.toFixed(2)}s`
-      } else if (metric === 'cls') {
-        return value.toFixed(3)
-      } else {
-        return `${Math.round(value)}ms`
+        return `${value.toFixed(2)}s`;
+      } else if (metric === 'fid' || metric === 'ttfb' || metric === 'responseTime') {
+        return `${Math.round(value)}ms`;
+      } 
+      // 布局偏移指标
+      else if (metric === 'cls') {
+        return value.toFixed(3);
+      } 
+      // 大小相关指标
+      else if (metric === 'pageSize' || metric === 'totalResourceSize') {
+        if (value < 1024) {
+          return `${value.toFixed(2)} B`;
+        } else if (value < 1024 * 1024) {
+          return `${(value / 1024).toFixed(2)} KB`;
+        } else {
+          return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+        }
+      } 
+      // 计数指标
+      else if (metric === 'requestCount' || metric === 'domainCount') {
+        return Math.round(value);
+      } 
+      // 布尔指标
+      else if (metric === 'usesHttps' || metric === 'supportsCompression' || metric === 'supportsCaching' || metric === 'usesCdn') {
+        return value ? '是' : '否';
+      } 
+      // 能源指标
+      else if (metric === 'energyConsumption' || metric === 'dataCenterEnergy' || metric === 'transmissionEnergy' || metric === 'deviceEnergy') {
+        return `${value.toFixed(4)} Wh`;
+      } 
+      // 碳排放指标
+      else if (metric === 'carbonEmission') {
+        return `${value.toFixed(2)} gCO2e`;
+      } 
+      else if (metric === 'annualCarbonEmission') {
+        return `${value.toFixed(2)} kgCO2e`;
+      } 
+      // 百分比指标
+      else if (metric === 'renewablePercentage') {
+        return `${value.toFixed(1)}%`;
+      } 
+      // PUE指标
+      else if (metric === 'pue') {
+        return value.toFixed(2);
+      } 
+      // 评分指标
+      else if (metric === 'securityScore') {
+        return `${Math.round(value)}/100`;
+      }
+      // 默认处理
+      else {
+        return value.toString();
       }
     },
     
@@ -1121,7 +1190,26 @@ export default {
         fid: '首次输入延迟',
         ttfb: '首次字节时间',
         responseTime: '服务器响应时间',
-        pageSize: '页面总大小'
+        pageSize: '页面总大小',
+        totalResourceSize: '资源总大小',
+        requestCount: '资源请求数量',
+        domainCount: '请求域名数量',
+        usesHttps: '使用HTTPS',
+        serverType: '服务器类型',
+        supportsCompression: '支持压缩',
+        supportsCaching: '支持缓存',
+        usesCdn: '使用CDN',
+        cdnProvider: 'CDN提供商',
+        resourceStats: '资源统计',
+        securityScore: '安全评分',
+        energyConsumption: '能源消耗',
+        dataCenterEnergy: '数据中心能源',
+        transmissionEnergy: '传输能源',
+        deviceEnergy: '设备能源',
+        carbonEmission: '碳排放量',
+        annualCarbonEmission: '年度碳排放',
+        renewablePercentage: '可再生能源比例',
+        pue: '能源使用效率'
       };
       return descriptions[metric] || '未知描述';
     },
