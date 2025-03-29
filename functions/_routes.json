@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": ["/assets/*"],
+  "routes": [
+    {
+      "pattern": "/api/health",
+      "script": "api/health.js"
+    },
+    {
+      "pattern": "/api/location",
+      "script": "api/location.js"
+    },
+    {
+      "pattern": "/api/performance",
+      "script": "api/performance.js"
+    },
+    {
+      "pattern": "/api/*",
+      "script": "api/[wildcard].js"
+    }
+  ]
+} 
