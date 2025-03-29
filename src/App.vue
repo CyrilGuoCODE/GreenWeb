@@ -43,7 +43,7 @@
         <div class="earth-container">
           <div class="earth"></div>
         </div>
-        <p>正在分析碳排放数据...<br><small>(使用Lighthouse测量性能，可能需要1-2分钟)</small></p>
+        <p>正在分析碳排放数据...<br><small>(使用Axios测量性能，可能需要5-60秒)</small></p>
       </div>
 
       <div v-if="result && !loading" class="result-section">
@@ -476,9 +476,9 @@
     </main>
 
     <footer class="footer">
-      <p>碳排放计算采用Lighthouse测量性能指标</p>
+      <p>碳排放计算采用HTTP请求测量性能指标</p>
       <p>结果仅供参考，不作为任何法律依据</p>
-      <p class="copyright">© {{ new Date().getFullYear() }} GreenWeb网站碳中和检测平台</p>
+      <p class="copyright">© {{ new Date().getFullYear() }} GreenWeb网站碳中和检测平台 | GreenSide团队</p>
     </footer>
   </div>
 </template>
