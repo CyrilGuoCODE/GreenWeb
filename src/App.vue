@@ -646,7 +646,16 @@ export default {
           isGreen: false,
           totalCarbonEmission: null,
           monthlyCarbonEmission: null,
-          suggestions: []
+          dataCenterEnergy: 0.0045, // 默认能源消耗值 (kWh)
+          transmissionEnergy: 0.0012, // 默认网络传输能耗 (kWh)
+          deviceEnergy: 0.0032,      // 默认设备能耗 (kWh)
+          suggestions: [
+            '使用绿色托管提供商可以减少碳足迹，选择使用可再生能源的服务商',
+            '优化JavaScript和CSS文件，减少代码体积，提高页面加载速度',
+            '将静态资源部署到CDN，减少服务器负载和网络传输距离',
+            '优化和压缩图片，减少页面总体积和加载时间',
+            '实施有效的浏览器缓存策略，减少重复资源的传输'
+          ]
         }
         
         // 合并各种结果 - 只添加真实测量的数据
@@ -1554,29 +1563,39 @@ export default {
 
 /* 结果网格 */
 .result-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 0;
+  position: relative;
 }
 
-/* 卡片通用样式 */
+.result-card-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.result-row {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 25px;
+  margin-bottom: 10px;
+}
+
 .result-card {
-  background: white;
-  border-radius: 16px;
-  padding: 30px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  height: 100%;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(230, 230, 230, 0.7);
-}
-
-.result-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(230, 230, 230, 0.6);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  grid-column: span 4;
 }
 
 .result-card::before {
@@ -1584,18 +1603,64 @@ export default {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  height: 5px;
-  background: linear-gradient(to right, #34c759, #32ade6);
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, #32ade6, #34c759);
+  opacity: 0.8;
+}
+
+/* 不同类型卡片的顶部颜色条 */
+.result-card.energy-source::before {
+  background: linear-gradient(90deg, #34c759, #4cd964);
+}
+
+.result-card.carbon-map::before {
+  background: linear-gradient(90deg, #32ade6, #007aff);
+}
+
+.result-card.energy-consumption::before {
+  background: linear-gradient(90deg, #5ac8fa, #007aff);
+}
+
+.result-card.carbon-impact::before {
+  background: linear-gradient(90deg, #ff9500, #ff3b30);
+}
+
+.result-card.site-info::before {
+  background: linear-gradient(90deg, #007aff, #5856d6);
+}
+
+.result-card.performance::before {
+  background: linear-gradient(90deg, #5856d6, #af52de);
+}
+
+.result-card.suggestions::before {
+  background: linear-gradient(90deg, #af52de, #ff2d55);
+}
+
+.result-card.green-hosting::before {
+  background: linear-gradient(90deg, #34c759, #00c7be);
+}
+
+.result-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.07);
+}
+
+.result-card.wide-card {
+  grid-column: span 6;
+}
+
+.result-card.major-card {
+  grid-column: span 6;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #f0f0f0;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  position: relative;
 }
 
 .card-header h3 {
@@ -1604,6 +1669,7 @@ export default {
   font-weight: 600;
   color: #333;
   position: relative;
+  padding-bottom: 15px;
 }
 
 .card-header h3::after {
@@ -1613,20 +1679,28 @@ export default {
   height: 3px;
   background: linear-gradient(to right, #34c759, #32ade6);
   left: 0;
-  bottom: -15px;
+  bottom: 0;
   border-radius: 3px;
 }
 
 .card-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
+  background: linear-gradient(135deg, rgba(50, 173, 230, 0.1), rgba(52, 199, 89, 0.1));
   color: #32ade6;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  margin-left: 15px;
+}
+
+/* 卡片内容区域共享样式 */
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 数据展示样式 */
@@ -1634,15 +1708,20 @@ export default {
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 14px;
+  gap: 16px;
 }
 
 .detail-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 2px;
   font-size: 15px;
   align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(230, 230, 230, 0.5);
+}
+
+.detail-item:last-child {
+  border-bottom: none;
 }
 
 .detail-label {
@@ -1653,10 +1732,157 @@ export default {
 .detail-value {
   font-weight: 600;
   color: #333;
-  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
-  padding: 4px 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #f9fafc, #f1f4f8);
+  padding: 6px 14px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.detail-value.highlight-text {
+  color: #32ade6;
+  background: linear-gradient(135deg, rgba(50, 173, 230, 0.1), rgba(52, 199, 89, 0.05));
+  font-weight: 700;
+}
+
+.green-value {
+  color: #34c759 !important;
+}
+
+/* 能源消耗卡片样式 */
+.energy-consumption-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.energy-consumption-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(135deg, #f9fafc, #f1f4f8);
+  border-radius: 14px;
+  padding: 20px 15px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+}
+
+.energy-consumption-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.consumption-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: 60%;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.data-center-icon {
+  background-color: rgba(50, 173, 230, 0.1);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%2332ADE6" viewBox="0 0 24 24"><path d="M4 1h16c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V3c0-1.1.9-2 2-2zm0 9h16c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-4c0-1.1.9-2 2-2zm0 10c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v0c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2v0z"/></svg>');
+}
+
+.network-icon {
+  background-color: rgba(255, 149, 0, 0.1);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23FF9500" viewBox="0 0 24 24"><path d="M12 21l-8-9h6V3h4v9h6l-8 9z"/></svg>');
+}
+
+.device-icon {
+  background-color: rgba(52, 199, 89, 0.1);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%2334C759" viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 16V6h16v10.01H4z"/></svg>');
+}
+
+.consumption-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin: 5px 0;
+}
+
+.consumption-label {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 碳排放数据样式 */
+.carbon-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.carbon-stat-item {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  background: linear-gradient(135deg, #f9fafc, #f1f4f8);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+}
+
+.carbon-stat-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.stat-label {
+  color: #666;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-weight: 700;
+  color: #333;
+  font-size: 18px;
+}
+
+.carbon-annual-impact {
+  grid-column: span 2;
+  background: linear-gradient(135deg, rgba(50, 173, 230, 0.05), rgba(52, 199, 89, 0.05));
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 10px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  border: 1px dashed rgba(50, 173, 230, 0.2);
+  text-align: center;
+}
+
+.impact-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.impact-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #32ade6;
+  margin: 10px 0;
+}
+
+.impact-equivalent {
+  font-size: 14px;
+  color: #666;
+}
+
+.highlight-text {
+  color: #34c759;
+  font-weight: 700;
 }
 
 /* 能源图表 */
@@ -1664,14 +1890,14 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 20px 0 30px;
+  margin: 25px 0;
 }
 
 .donut-chart {
   position: relative;
-  width: 150px;
-  height: 150px;
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
+  width: 170px;
+  height: 170px;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15));
 }
 
 .donut-hole {
@@ -1679,19 +1905,19 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 90px;
-  height: 90px;
+  width: 110px;
+  height: 110px;
   background: #fff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: bold;
   color: #34c759;
   box-shadow: 
-    inset 0 0 15px rgba(0, 0, 0, 0.05),
-    0 4px 15px rgba(52, 199, 89, 0.15);
+    inset 0 0 20px rgba(0, 0, 0, 0.05),
+    0 6px 20px rgba(52, 199, 89, 0.15);
 }
 
 .donut-ring {
@@ -1699,7 +1925,7 @@ export default {
   height: 100%;
   border-radius: 50%;
   background: #ff3b30;
-  filter: drop-shadow(0 4px 8px rgba(255, 59, 48, 0.25));
+  filter: drop-shadow(0 6px 12px rgba(255, 59, 48, 0.25));
 }
 
 .renewable {
@@ -1711,7 +1937,7 @@ export default {
   border-radius: 50%;
   background: conic-gradient(#34c759 var(--percent), transparent 0);
   --percent: 0%;
-  filter: drop-shadow(0 4px 8px rgba(52, 199, 89, 0.25));
+  filter: drop-shadow(0 6px 12px rgba(52, 199, 89, 0.25));
   animation: fillDonut 1.5s ease-out forwards;
 }
 
@@ -1723,170 +1949,182 @@ export default {
 .chart-legend {
   display: flex;
   justify-content: center;
-  gap: 25px;
-  margin-top: 20px;
+  gap: 30px;
+  margin-top: 25px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 10px;
+  font-size: 15px;
   font-weight: 500;
 }
 
 .legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
 }
 
 .legend-color.renewable {
   background-color: #34c759;
-  box-shadow: 0 2px 6px rgba(52, 199, 89, 0.3);
+  box-shadow: 0 3px 8px rgba(52, 199, 89, 0.3);
 }
 
 .legend-color.fossil {
   background-color: #ff3b30;
-  box-shadow: 0 2px 6px rgba(255, 59, 48, 0.3);
+  box-shadow: 0 3px 8px rgba(255, 59, 48, 0.3);
 }
 
-/* 碳排放热力图卡片 */
-.heatmap {
-  width: 100%;
-  height: 230px;
-  margin-bottom: 25px;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #f9fafb;
-  box-shadow: 
-    inset 0 0 15px rgba(0, 0, 0, 0.05),
-    0 4px 15px rgba(0, 0, 0, 0.05);
-  animation: fadeIn 1s ease-out forwards;
+/* 可用性提示 */
+.data-unavailable {
+  color: #888;
+  font-style: italic;
+  padding: 20px;
+  background-color: #f9fafc;
+  border-radius: 14px;
+  font-size: 15px;
+  text-align: center;
+  margin: 15px 0;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.03);
+  border: 1px dashed rgba(0, 0, 0, 0.1);
 }
 
-.carbon-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  margin-bottom: 25px;
-}
-
-.carbon-stat-item {
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
-  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
-  border-radius: 10px;
-  padding: 12px 15px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(230, 230, 230, 0.7);
-}
-
-.carbon-stat-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-}
-
-.stat-label {
-  color: #666;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.stat-value {
-  font-weight: 600;
-  color: #333;
-  font-size: 16px;
-}
-
-/* 碳排放总计 */
-.carbon-total {
+/* 卡片摘要 */
+.card-summary {
   margin-top: auto;
   padding-top: 20px;
-  border-top: 1px solid #eee;
+  text-align: center;
 }
 
-.total-item {
-  display: flex;
-  justify-content: space-between;
+.summary-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 14px;
   font-weight: 600;
   margin-bottom: 10px;
-  font-size: 16px;
 }
 
-.total-label {
-  color: #444;
+.green-badge {
+  background: linear-gradient(135deg, rgba(52, 199, 89, 0.15), rgba(50, 173, 230, 0.15));
+  color: #34c759;
+  box-shadow: 0 4px 10px rgba(52, 199, 89, 0.2);
 }
 
-.total-value {
-  color: #ff3b30;
-  background: rgba(255, 59, 48, 0.1);
-  padding: 4px 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(255, 59, 48, 0.2);
+.standard-badge {
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.15), rgba(255, 59, 48, 0.15));
+  color: #ff9500;
+  box-shadow: 0 4px 10px rgba(255, 149, 0, 0.2);
 }
 
-.total-info {
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .result-row {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  
+  .result-card {
+    grid-column: span 3;
+  }
+  
+  .result-card.wide-card, 
+  .result-card.major-card {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 768px) {
+  .result-row {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 20px;
+  }
+  
+  .result-card,
+  .result-card.wide-card,
+  .result-card.major-card {
+    grid-column: span 1;
+  }
+  
+  .carbon-stats,
+  .energy-consumption-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .carbon-annual-impact {
+    grid-column: span 1;
+  }
+}
+
+/* 能源消耗数据提示 */
+.energy-note {
+  padding: 15px;
+  background-color: #f9fafc;
+  border-radius: 12px;
+  margin-top: 20px;
   font-size: 14px;
   color: #666;
-  text-align: center;
-  margin-top: 10px;
-  padding: 10px;
-  background: #f5f7fa;
-  border-radius: 10px;
-  border: 1px solid rgba(230, 230, 230, 0.7);
-  line-height: 1.5;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
 }
 
-/* 性能指标样式 */
+/* 性能指标和优化建议布局 */
 .performance-metrics-v2 {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 15px;
+  animation: fadeInUp 0.6s ease-out forwards;
 }
 
 .metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
-  margin-bottom: 25px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .metric-card {
+  flex: 1;
+  min-width: 200px;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(135deg, #fff, #f8faff);
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  margin-bottom: 10px;
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .metric-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
 }
 
 .metric-visual {
   width: 100%;
+  padding: 25px 15px;
+  background: linear-gradient(135deg, #f9fafc, #f1f4f8);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   display: flex;
   justify-content: center;
-  margin-bottom: 15px;
+  align-items: center;
 }
 
 .metric-circle {
-  width: 80px;
-  height: 80px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 16px;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   position: relative;
   overflow: hidden;
 }
@@ -1894,11 +2132,9 @@ export default {
 .metric-circle::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), transparent 70%);
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25), transparent 70%);
 }
 
 .metric-circle.good {
@@ -1906,7 +2142,7 @@ export default {
 }
 
 .metric-circle.average {
-  background: linear-gradient(135deg, #ff9500, #ff2d55);
+  background: linear-gradient(135deg, #ff9500, #ff6a00);
 }
 
 .metric-circle.poor {
@@ -1918,71 +2154,83 @@ export default {
 }
 
 .metric-info {
+  padding: 20px 15px;
+  background-color: #fff;
   width: 100%;
-  text-align: center;
 }
 
 .metric-name {
+  font-size: 16px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 5px;
-  font-size: 15px;
+  margin-bottom: 8px;
 }
 
 .metric-description {
+  font-size: 14px;
   color: #666;
-  font-size: 13px;
-  margin-top: 4px;
+  line-height: 1.5;
 }
 
 .network-stats {
-  background: linear-gradient(135deg, #f5f7fa, #f9fafc);
-  border-radius: 12px;
-  padding: 15px 20px;
-  margin-top: 10px;
+  background: linear-gradient(135deg, #f9fafc, #f5f7fa);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+  margin-top: 15px;
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .network-title {
-  font-weight: 600;
+  font-size: 17px;
   color: #333;
+  font-weight: 600;
   margin-bottom: 15px;
-  font-size: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   position: relative;
-  padding-left: 16px;
 }
 
-.network-title::before {
+.network-title::after {
   content: '';
   position: absolute;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(to right, #34c759, #32ade6);
   left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #34c759, #32ade6);
+  bottom: -1px;
+  border-radius: 3px;
 }
 
 .network-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 15px;
 }
 
 .network-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 10px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.network-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
 
 .network-value {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   color: #32ade6;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 .network-label {
@@ -1990,149 +2238,142 @@ export default {
   color: #666;
 }
 
-/* 优化建议卡片 */
-.suggestion-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.data-source-info {
+  margin-top: 20px;
+  padding: 12px 15px;
+  background-color: #f9fafc;
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+  border-radius: 8px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* 优化建议布局 */
+.suggestions-container {
+  padding: 25px;
+}
+
+.suggestions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.suggestion-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  height: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.suggestion-item {
+.suggestion-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.suggestion-header {
+  padding: 18px;
+  background: linear-gradient(135deg, #f8faff, #f0f4f9);
+  border-bottom: 1px solid #eee;
   display: flex;
-  align-items: flex-start;
-  font-size: 14px;
-  padding: 15px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(230, 230, 230, 0.7);
-  animation: fadeInLeft 0.5s ease-out forwards;
-  animation-delay: calc(var(--i, 0) * 0.1s);
-  opacity: 0;
-  transform: translateX(-20px);
-}
-
-@keyframes fadeInLeft {
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.suggestion-item:hover {
-  background: linear-gradient(135deg, #e4e7eb, #f5f7fa);
-  transform: translateX(5px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  align-items: center;
 }
 
 .suggestion-icon {
   margin-right: 12px;
-  min-width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(50, 173, 230, 0.15);
-  color: #32ade6;
-  box-shadow: 0 2px 6px rgba(50, 173, 230, 0.2);
-}
-
-/* 方法信息卡片 */
-.result-card.suggestions h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #333;
-  font-size: 20px;
-  font-weight: 600;
-  position: relative;
-}
-
-.result-card.suggestions h3:after {
-  content: '';
-  position: absolute;
-  width: 40px;
-  height: 3px;
-  background: linear-gradient(to right, #34c759, #32ade6);
-  left: 0;
-  bottom: -10px;
-  border-radius: 3px;
-}
-
-.result-card.suggestions p {
-  margin: 20px 0 15px;
-  font-size: 15px;
-  line-height: 1.6;
-  color: #555;
-}
-
-.result-card.suggestions ol {
-  counter-reset: item;
-  padding-left: 0;
-  margin-bottom: 0;
-}
-
-.result-card.suggestions li {
-  counter-increment: item;
-  margin-bottom: 12px;
-  padding-left: 40px;
-  position: relative;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #555;
-}
-
-.result-card.suggestions li:before {
-  content: counter(item);
-  position: absolute;
-  left: 0;
-  top: 0;
-  background: linear-gradient(135deg, #34c759, #32ade6);
-  color: white;
-  width: 26px;
-  height: 26px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  background: linear-gradient(135deg, rgba(50, 173, 230, 0.15), rgba(52, 199, 89, 0.15));
+  color: #32ade6;
+  box-shadow: 0 4px 8px rgba(50, 173, 230, 0.15);
+}
+
+.suggestion-title {
+  font-size: 16px;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(50, 173, 230, 0.3);
+  color: #333;
+  letter-spacing: 0.3px;
 }
 
-/* 数据不可用状态 */
-.data-unavailable {
-  color: #888;
-  font-style: italic;
-  padding: 15px;
-  background-color: #f5f5f5;
-  border-radius: 10px;
-  font-size: 14px;
-  text-align: center;
-  margin: 15px 0;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(230, 230, 230, 0.7);
-}
-
-/* 错误消息样式 */
-.error-message {
-  color: #ff3b30;
-  background-color: rgba(255, 59, 48, 0.1);
+.suggestion-content {
   padding: 20px;
-  border-radius: 12px;
-  margin: 25px 0;
-  text-align: center;
-  font-weight: 500;
-  box-shadow: 0 4px 15px rgba(255, 59, 48, 0.15);
-  border: 1px solid rgba(255, 59, 48, 0.2);
-  animation: shake 0.5s ease-in-out;
+  color: #555;
+  font-size: 15px;
+  line-height: 1.7;
+  flex: 1;
+  background-color: #fff;
+  position: relative;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+.suggestion-content::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  height: 2px;
+  top: 0;
+  background: linear-gradient(to right, rgba(50, 173, 230, 0.1), transparent);
+  border-radius: 2px;
+}
+
+.suggestion-impact {
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suggestion-impact.low {
+  background: linear-gradient(to right, #4caf50, #66bb6a);
+}
+
+.suggestion-impact.medium {
+  background: linear-gradient(to right, #ff9800, #ffa726);
+}
+
+.suggestion-impact.high {
+  background: linear-gradient(to right, #f44336, #ef5350);
+}
+
+@media (max-width: 768px) {
+  .suggestions-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics-grid {
+    flex-direction: column;
+  }
+  
+  .metric-card {
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+.energy-note {
+  padding: 15px;
+  background-color: #f5f7fa;
+  border-radius: 6px;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #666;
 }
 
 /* 页脚样式 */
@@ -2963,264 +3204,5 @@ export default {
     width: 100%;
     margin-bottom: 15px;
   }
-}
-
-/* 性能指标和优化建议布局 */
-.performance-metrics-v2 {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 15px;
-  animation: fadeInUp 0.6s ease-out forwards;
-}
-
-.metrics-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.metric-card {
-  flex: 1;
-  min-width: 200px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.metric-visual {
-  width: 100%;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-bottom: 1px solid #eee;
-}
-
-.metric-circle {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  font-weight: 700;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.metric-circle.good {
-  background: linear-gradient(to right, #4caf50, #45a049);
-}
-
-.metric-circle.average {
-  background: linear-gradient(to right, #ff9500, #ffb340);
-}
-
-.metric-circle.poor {
-  background: linear-gradient(to right, #ff3b30, #ff6b60);
-}
-
-.metric-circle.unknown {
-  background: linear-gradient(to right, #aaa, #ccc);
-  opacity: 0.5;
-}
-
-.metric-info {
-  padding: 15px;
-  background-color: #fff;
-  border-top: 1px solid #eee;
-}
-
-.metric-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 10px;
-}
-
-.metric-description {
-  font-size: 14px;
-  color: #666;
-}
-
-.network-stats {
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 12px 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  margin-top: 8px;
-  animation: fadeIn 0.8s ease-out forwards;
-}
-
-.network-title {
-  font-size: 16px;
-  color: #2c3e50;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 6px;
-}
-
-.network-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.network-item {
-  flex: 1;
-  min-width: 150px;
-  background-color: #fff;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.network-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 5px;
-}
-
-.network-label {
-  font-size: 14px;
-  color: #666;
-}
-
-/* 优化建议布局 */
-.suggestions-container {
-  padding: 25px;
-}
-
-.suggestions-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.suggestion-card {
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.suggestion-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
-}
-
-.suggestion-header {
-  padding: 18px;
-  background: linear-gradient(135deg, #f8faff, #f0f4f9);
-  border-bottom: 1px solid #eee;
-  display: flex;
-  align-items: center;
-}
-
-.suggestion-icon {
-  margin-right: 12px;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(50, 173, 230, 0.15), rgba(52, 199, 89, 0.15));
-  color: #32ade6;
-  box-shadow: 0 4px 8px rgba(50, 173, 230, 0.15);
-}
-
-.suggestion-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  letter-spacing: 0.3px;
-}
-
-.suggestion-content {
-  padding: 20px;
-  color: #555;
-  font-size: 15px;
-  line-height: 1.7;
-  flex: 1;
-  background-color: #fff;
-  position: relative;
-}
-
-.suggestion-content::before {
-  content: '';
-  position: absolute;
-  left: 20px;
-  right: 20px;
-  height: 2px;
-  top: 0;
-  background: linear-gradient(to right, rgba(50, 173, 230, 0.1), transparent);
-  border-radius: 2px;
-}
-
-.suggestion-impact {
-  padding: 12px;
-  text-align: center;
-  font-weight: 600;
-  font-size: 14px;
-  color: #fff;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.suggestion-impact.low {
-  background: linear-gradient(to right, #4caf50, #66bb6a);
-}
-
-.suggestion-impact.medium {
-  background: linear-gradient(to right, #ff9800, #ffa726);
-}
-
-.suggestion-impact.high {
-  background: linear-gradient(to right, #f44336, #ef5350);
-}
-
-@media (max-width: 768px) {
-  .suggestions-list {
-    grid-template-columns: 1fr;
-  }
-  
-  .metrics-grid {
-    flex-direction: column;
-  }
-  
-  .metric-card {
-    width: 100%;
-    min-width: 100%;
-  }
-}
-
-.energy-note {
-  padding: 15px;
-  background-color: #f5f7fa;
-  border-radius: 6px;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #666;
 }
 </style> 

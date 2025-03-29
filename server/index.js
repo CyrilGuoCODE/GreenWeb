@@ -2217,3 +2217,235 @@ app.listen(PORT, async () => {
     console.log('Chrome可用，Lighthouse性能测试功能正常');
   }
 }); 
+
+/**
+ * 从HTML中提取资源URL
+ * @param {string} html - HTML内容
+ * @param {string} baseUrl - 基础URL
+ * @returns {Object} 提取的资源URL和分析结果
+ */
+function extractResourceUrls(html, baseUrl) {
+  try {
+    const cheerio = require('cheerio');
+    const $ = cheerio.load(html);
+    const resourceUrls = [];
+    const uniqueDomains = new Set();
+    
+    // 获取URL的域名部分
+    const getUrlDomain = (url) => {
+      try {
+        if (!url || typeof url !== 'string') return '';
+        const urlObj = new URL(url, baseUrl);
+        return urlObj.hostname;
+      } catch (e) {
+        return '';
+      }
+    };
+    
+    // 提取域名
+    const baseDomain = getUrlDomain(baseUrl);
+    
+    // 处理URL
+    const processUrl = (url) => {
+      if (!url) return null;
+      try {
+        // 处理相对URL
+        const absoluteUrl = new URL(url, baseUrl).href;
+        const domain = getUrlDomain(absoluteUrl);
+        if (domain) {
+          uniqueDomains.add(domain);
+        }
+        return absoluteUrl;
+      } catch (e) {
+        return null;
+      }
+    };
+    
+    // 提取CSS链接
+    $('link[rel="stylesheet"]').each((_, el) => {
+      const url = processUrl($(el).attr('href'));
+      if (url) resourceUrls.push({ url, type: 'css' });
+    });
+    
+    // 提取JavaScript
+    $('script[src]').each((_, el) => {
+      const url = processUrl($(el).attr('src'));
+      if (url) resourceUrls.push({ url, type: 'js' });
+    });
+    
+    // 提取图片
+    $('img[src]').each((_, el) => {
+      const url = processUrl($(el).attr('src'));
+      if (url) resourceUrls.push({ url, type: 'images' });
+    });
+    
+    // 提取背景图像从内联样式
+    $('[style*="background"]').each((_, el) => {
+      const style = $(el).attr('style');
+      if (style) {
+        const match = style.match(/url\(['"]?([^'")]+)['"]?\)/);
+        if (match && match[1]) {
+          const url = processUrl(match[1]);
+          if (url) resourceUrls.push({ url, type: 'images' });
+        }
+      }
+    });
+    
+    // 提取字体
+    $('link[rel="preload"][as="font"]').each((_, el) => {
+      const url = processUrl($(el).attr('href'));
+      if (url) resourceUrls.push({ url, type: 'fonts' });
+    });
+    
+    return {
+      $,
+      resourceUrls,
+      uniqueDomains
+    };
+  } catch (error) {
+    console.error('提取资源URL错误:', error);
+    return {
+      $: null,
+      resourceUrls: [],
+      uniqueDomains: new Set()
+    };
+  }
+}
+
+/**
+ * 统计不同类型的资源
+ * @param {Array} resourceUrls - 资源URL数组
+ * @returns {Object} 资源类型统计
+ */
+function countResourceTypes(resourceUrls) {
+  const stats = {
+    css: 0,
+    js: 0,
+    images: 0,
+    fonts: 0,
+    other: 0
+  };
+  
+  resourceUrls.forEach(resource => {
+    if (stats[resource.type] !== undefined) {
+      stats[resource.type]++;
+    } else {
+      stats.other++;
+    }
+  });
+  
+  return stats;
+}
+
+/**
+ * 检查CDN使用情况
+ * @param {Set} uniqueDomains - 唯一域名集合
+ * @param {Object} headers - HTTP响应头
+ * @returns {Object} CDN使用信息
+ */
+function checkCdnUsage(uniqueDomains, headers) {
+  const cdnProviders = {
+    'cloudflare': ['cloudflare', 'cloudflare-nginx', 'cloudfront.net'],
+    'akamai': ['akamai', 'akamaiedge.net', 'akamaized.net'],
+    'fastly': ['fastly'],
+    'cloudfront': ['cloudfront.net'],
+    'vercel': ['vercel-edge', 'vercel.app'],
+    'netlify': ['netlify', 'netlify.app']
+  };
+  
+  // 检查响应头中是否包含CDN信息
+  let cdnProvider = 'unknown';
+  let usesCdn = false;
+  
+  // 检查常见CDN响应头
+  if (headers['server']) {
+    for (const [provider, keywords] of Object.entries(cdnProviders)) {
+      if (keywords.some(keyword => headers['server'].toLowerCase().includes(keyword))) {
+        cdnProvider = provider;
+        usesCdn = true;
+        break;
+      }
+    }
+  }
+  
+  // 检查CDN特定头部
+  if (!usesCdn && headers['cf-ray']) {
+    cdnProvider = 'cloudflare';
+    usesCdn = true;
+  } else if (!usesCdn && headers['x-fastly-request-id']) {
+    cdnProvider = 'fastly';
+    usesCdn = true;
+  } else if (!usesCdn && headers['x-amz-cf-id']) {
+    cdnProvider = 'cloudfront';
+    usesCdn = true;
+  } else if (!usesCdn && headers['x-vercel-cache']) {
+    cdnProvider = 'vercel';
+    usesCdn = true;
+  } else if (!usesCdn && headers['x-nf-request-id']) {
+    cdnProvider = 'netlify';
+    usesCdn = true;
+  }
+  
+  // 检查域名中是否包含CDN信息
+  if (!usesCdn) {
+    const domains = Array.from(uniqueDomains);
+    for (const domain of domains) {
+      for (const [provider, keywords] of Object.entries(cdnProviders)) {
+        if (keywords.some(keyword => domain.includes(keyword))) {
+          cdnProvider = provider;
+          usesCdn = true;
+          break;
+        }
+      }
+      if (usesCdn) break;
+    }
+  }
+  
+  return {
+    usesCdn,
+    cdnProvider
+  };
+}
+
+/**
+ * 计算安全分数
+ * @param {Object} headers - HTTP响应头
+ * @returns {Object} 安全分数和详情
+ */
+function calculateSecurityScore(headers) {
+  let score = 0;
+  const details = {};
+  
+  // 检查常见安全响应头
+  const securityHeaders = {
+    'strict-transport-security': { score: 20, name: '严格传输安全' },
+    'content-security-policy': { score: 20, name: '内容安全策略' },
+    'x-content-type-options': { score: 10, name: '内容类型选项' },
+    'x-frame-options': { score: 10, name: '框架选项' },
+    'x-xss-protection': { score: 10, name: 'XSS保护' },
+    'referrer-policy': { score: 10, name: '引用策略' },
+    'permissions-policy': { score: 10, name: '权限策略' },
+    'feature-policy': { score: 10, name: '功能策略' }
+  };
+  
+  for (const [header, info] of Object.entries(securityHeaders)) {
+    if (headers[header]) {
+      score += info.score;
+      details[header] = {
+        present: true,
+        value: headers[header],
+        name: info.name
+      };
+    } else {
+      details[header] = {
+        present: false,
+        name: info.name
+      };
+    }
+  }
+  
+  return {
+    score: Math.min(93, score),
+    details
+  };
+}
