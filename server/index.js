@@ -1338,10 +1338,12 @@ app.get('/api/carbon', async (req, res) => {
     const baseEnergyIntensity = GLOBAL_CONSTANTS.averageEnergyConsumption;
     const energyIntensity = baseEnergyIntensity * dataCenterPUE;
     
-    // 计算能源消耗 - 不使用估算修正因子
-    const dataCenterEnergy = pageSizeInGB * (energyIntensity / dataCenterPUE);
-    const transmissionEnergy = pageSizeInGB * GLOBAL_CONSTANTS.averageTransmissionPerGB;
-    const deviceEnergy = pageSizeInGB * GLOBAL_CONSTANTS.averageDevicePerGB;
+    // 计算能源消耗 - 确保即使页面很小也有最小值
+    // 使用Math.max确保能源消耗有一个最小基准值
+    const pageSizeInGBSafe = Math.max(pageSizeInGB, 0.0001); // 确保至少有0.1MB
+    const dataCenterEnergy = pageSizeInGBSafe * (energyIntensity / dataCenterPUE);
+    const transmissionEnergy = pageSizeInGBSafe * GLOBAL_CONSTANTS.averageTransmissionPerGB;
+    const deviceEnergy = pageSizeInGBSafe * GLOBAL_CONSTANTS.averageDevicePerGB;
     
     // 数据中心碳排放 - 考虑可再生能源比例
     const dataTransferCarbon = dataCenterEnergy * (

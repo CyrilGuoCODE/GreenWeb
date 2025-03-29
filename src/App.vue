@@ -56,13 +56,7 @@
             </ul>
             <p>以下分析仅基于可获取的真实数据。</p>
           </div>
-        </div>
-        
-        <!-- 添加数据真实性指示 -->
-        <div v-if="result.estimatedData && result.estimatedData.length > 0" class="data-note">
-          <p><strong>注意:</strong> 以下数据是估算的，而非直接测量：{{ result.estimatedData.join(', ') }}。</p>
-        </div>
-        
+        </div>   
         <div class="result-summary">
           <div class="summary-card" :class="result.isGreen ? 'green' : 'red'">
             <div class="summary-header">
@@ -170,254 +164,312 @@
                       <span class="provider-label">服务器位置:</span>
                       <span class="provider-value">{{ result.region || '未知' }}, {{ result.country || '未知' }}</span>
                     </div>
+                    <div class="provider-item">
+                      <span class="provider-label">绿色托管等级:</span>
+                      <span class="provider-value" :class="{'green-value': result.isGreen}">
+                        {{ result.isGreen ? '环保托管' : '标准托管' }}
+                      </span>
+                    </div>
+                    <div class="provider-item">
+                      <span class="provider-label">全球碳强度:</span>
+                      <span class="provider-value">{{ globalConstants.averageCarbonIntensity }} gCO2e/kWh</span>
+                    </div>
                   </div>
                 </div>
+              </div>
+              <div v-if="result.isGreen" class="green-hosting-info">
+                <p>该网站使用环保托管服务，有助于减少互联网碳足迹。</p>
+              </div>
+              <div v-else class="green-hosting-info">
+                <p>建议考虑使用更环保的托管服务，以减少碳排放。</p>
               </div>
             </div>
           </div>
         </div>
 
         <div class="result-grid">
-          <div class="result-card energy-source">
-            <div class="card-header">
-              <h3>能源分析</h3>
-              <div class="card-icon">
-                <el-icon><DataBoard /></el-icon>
-              </div>
-            </div>
-            <div v-if="result.renewablePercentage !== null" class="energy-chart">
-              <div class="donut-chart">
-                <div class="donut-hole">{{ result.renewablePercentage }}%</div>
-                <div class="donut-ring">
-                  <div class="renewable" :style="`--percent: ${result.renewablePercentage}%`"></div>
-                </div>
-              </div>
-              <div class="chart-legend">
-                <div class="legend-item">
-                  <div class="legend-color renewable"></div>
-                  <span>可再生能源 ({{ result.renewablePercentage }}%)</span>
-                </div>
-                <div class="legend-item">
-                  <div class="legend-color fossil"></div>
-                  <span>化石能源 ({{ 100 - result.renewablePercentage }}%)</span>
-                </div>
-              </div>
-            </div>
-            <div v-else class="data-unavailable">
-              无法获取可再生能源使用比例
-            </div>
-            <div class="details">
-              <div class="detail-item">
-                <span class="detail-label">服务商:</span>
-                <span class="detail-value">{{ result.provider && typeof result.provider === 'string' ? result.provider.toUpperCase() : '未知' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">区域:</span>
-                <span class="detail-value">{{ result.region || '无法获取' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">国家:</span>
-                <span class="detail-value">{{ result.country || '无法获取' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">页面大小:</span>
-                <span class="detail-value">{{ result.pageSize ? `${result.pageSize} KB` : '无法获取' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">能源强度:</span>
-                <span class="detail-value">{{ result.energyIntensity !== null ? `${result.energyIntensity.toFixed(2)} kWh/GB` : '无法获取' }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="result-card data-analysis">
-            <div class="card-header">
-              <h3>能源消耗分析</h3>
-              <div class="card-icon">
-                <el-icon><Connection /></el-icon>
-              </div>
-            </div>
-            <div v-if="result.dataCenterEnergy !== null" class="details">
-              <div class="detail-item">
-                <span class="detail-label">全球碳强度:</span>
-                <span class="detail-value">{{ globalConstants.averageCarbonIntensity }} gCO2e/kWh</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">绿色能源碳强度:</span>
-                <span class="detail-value">{{ globalConstants.greenEnergyCarbonIntensity }} gCO2e/kWh</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">数据中心能耗:</span>
-                <span class="detail-value">{{ (result.dataCenterEnergy * 1000).toFixed(3) }} Wh</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">传输能耗:</span>
-                <span class="detail-value">{{ (result.transmissionEnergy * 1000).toFixed(3) }} Wh</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">客户端能耗:</span>
-                <span class="detail-value">{{ (result.deviceEnergy * 1000).toFixed(3) }} Wh</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">考虑缓存优化:</span>
-                <span class="detail-value">减少 {{ (globalConstants.cachingEfficiency * 100).toFixed(0) }}% 传输</span>
-              </div>
-            </div>
-            <div v-else class="data-unavailable">
-              无法获取能源消耗分析数据
-            </div>
-          </div>
-
-          <div class="result-card carbon-map">
-            <div class="card-header">
-              <h3>碳排放分析</h3>
-              <div class="card-icon">
-                <el-icon><PieChart /></el-icon>
-              </div>
-            </div>
-            <div v-if="result.totalCarbonEmission !== null">
-              <!-- 新增评分显示区域 -->
-              <div class="score-container" v-if="result.carbonFootprintScore || result.energyEfficiencyScore">
-                <div class="carbon-score-card" :class="getCarbonScoreClass(result.carbonFootprintScore)">
-                  <div class="score-circle">{{ Math.round(result.carbonFootprintScore || 50) }}</div>
-                  <div class="score-label">碳足迹评分</div>
-                  <div class="score-desc">{{ getCarbonScoreDesc(result.carbonFootprintScore) }}</div>
-                </div>
-                <div class="carbon-score-card" :class="getEnergyScoreClass(result.energyEfficiencyScore)">
-                  <div class="score-circle">{{ Math.round(result.energyEfficiencyScore || 50) }}</div>
-                  <div class="score-label">能源效率评分</div>
-                  <div class="score-desc">{{ getEnergyScoreDesc(result.energyEfficiencyScore) }}</div>
-                </div>
-              </div>
-              
-              <div ref="heatmapRef" class="heatmap"></div>
-              <div class="carbon-stats">
-                <div class="carbon-stat-item">
-                  <span class="stat-label">数据中心碳排放:</span>
-                  <span class="stat-value">{{ formatNumber(result.dataTransferCarbon) }} gCO2e</span>
-                </div>
-                <div class="carbon-stat-item">
-                  <span class="stat-label">网络传输碳排放:</span>
-                  <span class="stat-value">{{ formatNumber(result.networkCarbon) }} gCO2e</span>
-                </div>
-                <div class="carbon-stat-item">
-                  <span class="stat-label">客户端碳排放:</span>
-                  <span class="stat-value">{{ formatNumber(result.clientCarbon) }} gCO2e</span>
-                </div>
-                <div class="carbon-stat-item">
-                  <span class="stat-label">总计碳排放:</span>
-                  <span class="stat-value">{{ result.totalCarbonEmission.toFixed(2) }} gCO2e</span>
-                </div>
-              </div>
-              <div class="carbon-total">
-                <div class="total-item">
-                  <span class="total-label">年度碳排放:</span>
-                  <span class="total-value">
-                    {{ result.annualCarbonEmission.toFixed(2) }} kgCO2e
-                    <span v-if="result.estimatedData && result.estimatedData.includes('annualCarbonEmission')" class="estimated-data-tag">估算</span>
-                  </span>
-                </div>
-                <div class="total-info">相当于种植{{ Math.round(result.annualCarbonEmission / globalConstants.treeCO2PerYear) }}棵树才能抵消</div>
-              </div>
-            </div>
-            <div v-else class="data-unavailable">
-              无法获取碳排放分析数据
-            </div>
-          </div>
-
-          <div class="result-card performance">
-            <div class="card-header">
-              <h3>性能指标</h3>
-              <div class="card-icon">
-                <el-icon><Timer /></el-icon>
-              </div>
-            </div>
-            <div v-if="result.performance && result.performance.measurable !== false" class="performance-metrics">
-              <div 
-                v-for="(value, metric, index) in result.performance" 
-                :key="metric"
-                :style="`--i: ${index}`"
-                class="metric-item"
-                v-show="!['measuredBy', 'statusCode', 'measurable', 'requestCount', 'domainCount'].includes(metric)"
-              >
-                <div class="metric-header">
-                  <span class="metric-name">{{ formatMetricName(metric) }}</span>
-                  <span :class="['metric-value', getMetricGrade(metric, value)]">
-                    {{ formatMetricValue(metric, value) }}
-                  </span>
-                </div>
-                <div class="progress-bar-container">
-                  <div class="progress-bar-bg"></div>
-                  <div 
-                    class="progress-bar" 
-                    :class="getMetricGrade(metric, value)"
-                    :style="{
-                      ...getProgressStyle(metric, value),
-                      '--width': getProgressStyle(metric, value).width
-                    }"
-                  ></div>
-                </div>
-              </div>
-              
-              <!-- 添加网络请求指标显示 -->
-              <div v-if="result.performance.requestCount || result.performance.domainCount" class="additional-metrics">
-                <h4>网络请求数据</h4>
-                <div class="detail-item" v-if="result.performance.requestCount">
-                  <span class="detail-label">请求数量:</span>
-                  <span class="detail-value">{{ result.performance.requestCount }}</span>
-                </div>
-                <div class="detail-item" v-if="result.performance.domainCount">
-                  <span class="detail-label">域名数量:</span>
-                  <span class="detail-value">{{ result.performance.domainCount }}</span>
-                </div>
-              </div>
-              
-              <div v-if="result.performance.measuredBy" class="data-unavailable">
-                测量工具: {{ result.performance.measuredBy }}
-              </div>
-            </div>
-            <div v-else class="data-unavailable">
-              无法获取性能指标数据<br>
-              <small v-if="result.performance && result.performance.error">{{ result.performance.error }}</small>
-            </div>
-          </div>
-
-          <div class="result-card suggestions">
-            <div class="card-header">
-              <h3>优化建议</h3>
-              <div class="card-icon">
-                <el-icon><Opportunity /></el-icon>
-              </div>
-            </div>
-            <ul v-if="result.suggestions && result.suggestions.length > 0" class="suggestion-list">
-              <li 
-                v-for="(suggestion, index) in result.suggestions" 
-                :key="index" 
-                :style="`--i: ${index}`"
-                class="suggestion-item"
-              >
-                <div class="suggestion-icon">
-                  <el-icon><Opportunity /></el-icon>
-                </div>
-                <span>{{ suggestion }}</span>
-              </li>
-            </ul>
-            <div v-else class="data-unavailable">
-              无法生成具体优化建议，请确保网站可访问
-            </div>
-          </div>
           
-          <div class="result-card suggestions">
-            <h3>碳排放评估方法</h3>
-            <p>我们的驱动系统通过以下步骤提供精确的碳排放评估：</p>
-            <ol>
-              <li>使用Lighthouse进行真实性能测量，不采用估计值</li>
-              <li>深度网络流量分析及页面数据传输量精确测量</li>
-              <li>先进算法计算数据传输的能源消耗模型</li>
-              <li>结合全球能源数据库分析碳强度影响</li>
-              <li>评估数据中心能效、冷却系统和可再生能源使用率</li>
-              <li>多维度分析网络传输和用户设备的能源消耗模式</li>
-            </ol>
+          <!-- 现代化的结果卡片网格布局 -->
+          <div class="result-card-container">
+            <!-- 第一行卡片 - 重要信息 -->
+            <div class="result-row">
+              <div class="result-card energy-source major-card">
+                <div class="card-header">
+                  <h3>可再生能源使用情况</h3>
+                  <div class="card-icon">
+                    <el-icon><DataBoard /></el-icon>
+                  </div>
+                </div>
+                <div v-if="result.renewablePercentage !== null" class="energy-chart">
+                  <div class="donut-chart">
+                    <div class="donut-hole">{{ result.renewablePercentage }}%</div>
+                    <div class="donut-ring">
+                      <div class="renewable" :style="`--percent: ${result.renewablePercentage}%`"></div>
+                    </div>
+                  </div>
+                  <div class="chart-legend">
+                    <div class="legend-item">
+                      <div class="legend-color renewable"></div>
+                      <span>可再生能源 ({{ result.renewablePercentage }}%)</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-color fossil"></div>
+                      <span>化石能源 ({{ 100 - result.renewablePercentage }}%)</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="data-unavailable">
+                  无法获取可再生能源使用比例
+                </div>
+                <div class="card-summary">
+                  <div class="summary-badge" :class="result.isGreen ? 'green-badge' : 'standard-badge'">
+                    {{ result.isGreen ? '环保托管' : '标准托管' }}
+                  </div>
+                  <p>{{ result.isGreen ? '此网站使用环保友好的托管服务' : '建议使用更环保的托管服务' }}</p>
+                </div>
+              </div>
+
+              <div class="result-card carbon-map major-card">
+                <div class="card-header">
+                  <h3>碳排放评分</h3>
+                  <div class="card-icon">
+                    <el-icon><PieChart /></el-icon>
+                  </div>
+                </div>
+                <div v-if="result.totalCarbonEmission !== null">
+                  <div class="score-container" v-if="result.carbonFootprintScore || result.energyEfficiencyScore">
+                    <div class="carbon-score-card" :class="getCarbonScoreClass(result.carbonFootprintScore)">
+                      <div class="score-circle">{{ Math.round(result.carbonFootprintScore || 50) }}</div>
+                      <div class="score-label">碳足迹评分</div>
+                      <div class="score-desc">{{ getCarbonScoreDesc(result.carbonFootprintScore) }}</div>
+                    </div>
+                    <div class="carbon-score-card" :class="getEnergyScoreClass(result.energyEfficiencyScore)">
+                      <div class="score-circle">{{ Math.round(result.energyEfficiencyScore || 50) }}</div>
+                      <div class="score-label">能源效率评分</div>
+                      <div class="score-desc">{{ getEnergyScoreDesc(result.energyEfficiencyScore) }}</div>
+                    </div>
+                  </div>
+                  <div class="total-emission-highlight">
+                    <div class="highlight-value">{{ result.totalCarbonEmission.toFixed(4) }} <span>gCO2e</span></div>
+                    <div class="highlight-label">单次访问碳排放</div>
+                  </div>
+                </div>
+                <div v-else class="data-unavailable">
+                  无法获取碳排放分析数据
+                </div>
+              </div>
+            </div>
+
+            <!-- 第二行卡片 - 详细数据 -->
+            <div class="result-row">
+              <div class="result-card site-info">
+                <div class="card-header">
+                  <h3>网站基础信息</h3>
+                  <div class="card-icon">
+                    <el-icon><Connection /></el-icon>
+                  </div>
+                </div>
+                <div class="details">
+                  <div class="detail-item">
+                    <span class="detail-label">服务商:</span>
+                    <span class="detail-value highlight-text">{{ result.provider && typeof result.provider === 'string' ? result.provider.toUpperCase() : '未知' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">服务器位置:</span>
+                    <span class="detail-value">{{ result.region || '未知' }}, {{ result.country || '未知' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">页面大小:</span>
+                    <span class="detail-value">{{ result.pageSize ? `${result.pageSize} KB` : '无法获取' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">能源强度:</span>
+                    <span class="detail-value">{{ result.energyIntensity !== null ? `${result.energyIntensity.toFixed(2)} kWh/GB` : '无法获取' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">PUE值:</span>
+                    <span class="detail-value" :class="{'highlight-text': result.pue && result.pue < 1.5}">
+                      {{ result.pue || '未知' }}
+                      <span v-if="result.estimatedData && result.estimatedData.includes('pue')" class="estimated-data-tag">估算</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="result-card energy-consumption">
+                <div class="card-header">
+                  <h3>能源消耗分析</h3>
+                  <div class="card-icon">
+                    <el-icon><Connection /></el-icon>
+                  </div>
+                </div>
+                <!-- 显示设置，确保始终显示能源消耗网格 -->
+                <div class="energy-consumption-grid">
+                  <div class="energy-consumption-item">
+                    <div class="consumption-icon data-center-icon"></div>
+                    <div class="consumption-value">{{ formatEnergyValue(result.dataCenterEnergy) }}</div>
+                    <div class="consumption-label">数据中心能耗</div>
+                  </div>
+                  <div class="energy-consumption-item">
+                    <div class="consumption-icon network-icon"></div>
+                    <div class="consumption-value">{{ formatEnergyValue(result.transmissionEnergy) }}</div>
+                    <div class="consumption-label">网络传输能耗</div>
+                  </div>
+                  <div class="energy-consumption-item">
+                    <div class="consumption-icon device-icon"></div>
+                    <div class="consumption-value">{{ formatEnergyValue(result.deviceEnergy) }}</div>
+                    <div class="consumption-label">用户设备能耗</div>
+                  </div>
+                </div>
+                <div v-if="!result.dataCenterEnergy && !result.transmissionEnergy && !result.deviceEnergy" class="energy-note">
+                  <p>注意: 能源消耗数据可能很低或无法获取。这可能是因为页面太小或性能分析不完整。</p>
+                </div>
+              </div>
+
+              <div class="result-card carbon-impact">
+                <div class="card-header">
+                  <h3>碳排放详情</h3>
+                  <div class="card-icon">
+                    <el-icon><PieChart /></el-icon>
+                  </div>
+                </div>
+                <div v-if="result.totalCarbonEmission !== null" class="carbon-stats">
+                  <div class="carbon-stat-item">
+                    <span class="stat-label">数据中心碳排放:</span>
+                    <span class="stat-value">{{ formatNumber(result.dataTransferCarbon) }} gCO2e</span>
+                  </div>
+                  <div class="carbon-stat-item">
+                    <span class="stat-label">网络传输碳排放:</span>
+                    <span class="stat-value">{{ formatNumber(result.networkCarbon) }} gCO2e</span>
+                  </div>
+                  <div class="carbon-stat-item">
+                    <span class="stat-label">客户端碳排放:</span>
+                    <span class="stat-value">{{ formatNumber(result.clientCarbon) }} gCO2e</span>
+                  </div>
+                  <div class="carbon-annual-impact">
+                    <div class="impact-title">年度碳排放估计</div>
+                    <div class="impact-value">{{ result.annualCarbonEmission.toFixed(2) }} kgCO2e</div>
+                    <div class="impact-equivalent">
+                      相当于种植 <span class="highlight-text">{{ Math.round(result.annualCarbonEmission / globalConstants.treeCO2PerYear) }}</span> 棵树才能抵消
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="data-unavailable">
+                  无法获取碳排放分析数据
+                </div>
+              </div>
+            </div>
+
+            <!-- 第三行卡片 - 性能和建议 -->
+            <div class="result-row">
+              <div class="result-card performance wide-card">
+                <div class="card-header">
+                  <h3>性能指标</h3>
+                  <div class="card-icon">
+                    <el-icon><Timer /></el-icon>
+                  </div>
+                </div>
+                <div v-if="result.performance && result.performance.measurable !== false" class="performance-metrics-v2">
+                  <div class="metrics-grid">
+                    <div 
+                      v-for="(value, metric, index) in result.performance" 
+                      :key="metric"
+                      class="metric-card"
+                      v-show="!['measuredBy', 'statusCode', 'measurable', 'requestCount', 'domainCount'].includes(metric)"
+                    >
+                      <div class="metric-visual">
+                        <div class="metric-circle" :class="getMetricGrade(metric, value)">
+                          {{ formatMetricValue(metric, value) }}
+                        </div>
+                      </div>
+                      <div class="metric-info">
+                        <div class="metric-name">{{ formatMetricName(metric) }}</div>
+                        <div class="metric-description">{{ getMetricDescription(metric) }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div v-if="result.performance.requestCount || result.performance.domainCount" class="network-stats">
+                    <div class="network-title">网络请求数据</div>
+                    <div class="network-grid">
+                      <div class="network-item" v-if="result.performance.requestCount">
+                        <div class="network-value">{{ result.performance.requestCount }}</div>
+                        <div class="network-label">请求数量</div>
+                      </div>
+                      <div class="network-item" v-if="result.performance.domainCount">
+                        <div class="network-value">{{ result.performance.domainCount }}</div>
+                        <div class="network-label">域名数量</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div v-if="result.performance.measuredBy" class="data-source-info">
+                    测量工具: {{ result.performance.measuredBy }}
+                  </div>
+                </div>
+                <div v-else class="data-unavailable">
+                  无法获取性能指标数据<br>
+                  <small v-if="result.performance && result.performance.error">{{ result.performance.error }}</small>
+                </div>
+              </div>
+
+              <div class="result-card suggestions wide-card">
+                <div class="card-header">
+                  <h3>优化建议</h3>
+                  <div class="card-icon">
+                    <el-icon><Opportunity /></el-icon>
+                  </div>
+                </div>
+                <div v-if="result.suggestions && result.suggestions.length > 0" class="suggestions-container">
+                  <div class="suggestions-list">
+                    <div 
+                      v-for="(suggestion, index) in result.suggestions" 
+                      :key="index" 
+                      class="suggestion-card"
+                    >
+                      <div class="suggestion-header">
+                        <div class="suggestion-icon">
+                          <el-icon><Opportunity /></el-icon>
+                        </div>
+                        <div class="suggestion-title">优化建议 #{{ index + 1 }}</div>
+                      </div>
+                      <div class="suggestion-content">
+                        {{ suggestion }}
+                      </div>
+                      <div class="suggestion-impact" :class="getImpactClass(index)">
+                        {{ getImpactLevel(index) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="data-unavailable">
+                  无法生成具体优化建议，请确保网站可访问
+                </div>
+              </div>
+            </div>
+
+            <!-- 绿色托管信息卡片 -->
+            <div v-if="carbonResult" class="result-card green-hosting wide-card">
+              <h3>绿色托管信息</h3>
+              <div class="detail-content">
+                <div class="provider-info">
+                  <div><strong>提供商：</strong> {{ carbonResult.provider || '未知' }}</div>
+                  <div><strong>服务器位置：</strong> {{ carbonResult.region || '未知' }}</div>
+                  
+                  <div class="provider-stats">
+                    <div><strong>可再生能源使用率：</strong> <span :class="{ 'green-value': carbonResult.renewablePercentage > 50 }">{{ carbonResult.renewablePercentage || 0 }}%</span></div>
+                    <div><strong>PUE值：</strong> <span :class="{ 'green-value': carbonResult.pue < 1.5 }">{{ carbonResult.pue || '未知' }}</span></div>
+                    <div><strong>绿色托管级别：</strong> <span :class="{ 'green-value': isGreenHosting }">{{ isGreenHosting ? '环保托管' : '标准托管' }}</span></div>
+                  </div>
+                  
+                  <div class="green-hosting-info">
+                    <p v-if="isGreenHosting">此网站由环保友好的主机提供商托管，使用高比例的可再生能源和高效的数据中心设施。</p>
+                    <p v-else>此网站使用标准托管服务，可以通过迁移到使用更多可再生能源的提供商来降低碳足迹。</p>
+                    <p>全球服务器平均碳强度：{{ globalCarbonIntensity || '未知' }} gCO2/kWh</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -432,9 +484,8 @@
 </template>
 
 <script>
-import { ref, onMounted, reactive, nextTick } from 'vue'
+import { ref, onMounted, reactive, nextTick, computed } from 'vue'
 import { Search, Connection, DataBoard, PieChart, Timer, Opportunity, Check, Close } from '@element-plus/icons-vue'
-import * as echarts from 'echarts/core'
 import {
   analyzeWebsite, 
   measurePerformance, 
@@ -461,9 +512,7 @@ export default {
     const domain = ref('')
     const loading = ref(false)
     const result = ref(null)
-    const heatmapRef = ref(null)
     const selectedBrowser = ref('auto')
-    let heatmapChart = null
     
     // 全局常量
     const globalConstants = reactive({
@@ -639,13 +688,6 @@ export default {
         }
         
         console.log('分析完成:', result.value)
-        
-        // 初始化热图
-        nextTick(() => {
-          console.log('尝试初始化热图')
-          // 临时禁用热图初始化以避免错误
-          // initializeHeatmap()
-        })
       } catch (error) {
         console.error('分析过程中出错:', error)
         result.value = {
@@ -683,14 +725,27 @@ export default {
       console.log('应用已挂载')
     })
     
+    const isGreenHosting = computed(() => {
+      if (!carbonResult.value) return false;
+      const renewable = carbonResult.value.renewablePercentage || 0;
+      const pue = carbonResult.value.pue || 2.0;
+      return renewable > 50 && pue < 1.5;
+    });
+    
+    const globalCarbonIntensity = computed(() => {
+      // 全球平均碳强度，单位：gCO2/kWh
+      return 475;
+    });
+    
     return {
       domain,
       loading,
       result,
-      heatmapRef,
       globalConstants,
       selectedBrowser,
-      checkCarbon
+      checkCarbon,
+      isGreenHosting,
+      globalCarbonIntensity
     }
   },
   
@@ -1034,6 +1089,49 @@ export default {
         'default': 'fa-lightbulb'
       };
       return icons[type] || icons.default;
+    },
+    
+    // 获取影响等级
+    getImpactLevel(index) {
+      const levels = ['低', '中', '高'];
+      return levels[index % levels.length];
+    },
+    
+    // 获取影响类
+    getImpactClass(index) {
+      const classes = ['low', 'medium', 'high'];
+      return classes[index % classes.length];
+    },
+    
+    // 获取指标描述
+    getMetricDescription(metric) {
+      const descriptions = {
+        fcp: '首次内容绘制时间',
+        lcp: '最大内容绘制时间',
+        cls: '累计布局偏移',
+        fid: '首次输入延迟',
+        ttfb: '首次字节时间',
+        responseTime: '服务器响应时间',
+        pageSize: '页面总大小'
+      };
+      return descriptions[metric] || '未知描述';
+    },
+    
+    // 格式化能源消耗值
+    formatEnergyValue(value) {
+      if (value === null || value === undefined) return '0.0000';
+      const wattHours = value * 1000; // 转换为瓦时
+      
+      if (wattHours < 0.001) {
+        // 小于1微瓦时，显示为微瓦时
+        return `${(wattHours * 1000000).toFixed(2)} μWh`;
+      } else if (wattHours < 1) {
+        // 小于1毫瓦时，显示为毫瓦时
+        return `${(wattHours * 1000).toFixed(2)} mWh`;
+      } else {
+        // 正常显示瓦时
+        return `${wattHours.toFixed(4)} Wh`;
+      }
     }
   }
 }
@@ -1743,144 +1841,153 @@ export default {
 }
 
 /* 性能指标样式 */
-.performance-metrics {
+.performance-metrics-v2 {
+  padding: 20px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.metric-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 15px;
-  animation: fadeInUp 0.6s ease-out forwards;
-}
-
-.additional-metrics {
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 12px 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  margin-top: 8px;
-  animation: fadeIn 0.8s ease-out forwards;
-}
-
-.additional-metrics h4 {
-  font-size: 16px;
-  color: #2c3e50;
-  margin-bottom: 10px;
-  margin-top: 0;
-  border-bottom: 1px solid #eaeaea;
-  padding-bottom: 6px;
-}
-
-.metric-item {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 15px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  animation: slideIn 0.5s ease-out forwards;
-  animation-delay: calc(var(--i, 0) * 0.1s);
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-@keyframes slideIn {
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.metric-item:hover {
-  transform: translateX(5px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-}
-
-.metric-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
   align-items: center;
+  background: linear-gradient(135deg, #fff, #f8faff);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-.metric-name {
-  color: #444;
-  font-weight: 500;
-  font-size: 15px;
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
-.metric-value {
+.metric-visual {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.metric-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
   font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 15px;
-}
-
-.metric-value.good {
-  background-color: rgba(52, 199, 89, 0.15);
-  color: #34c759;
-  box-shadow: 0 2px 6px rgba(52, 199, 89, 0.2);
-}
-
-.metric-value.average {
-  background-color: rgba(255, 149, 0, 0.15);
-  color: #ff9500;
-  box-shadow: 0 2px 6px rgba(255, 149, 0, 0.2);
-}
-
-.metric-value.poor {
-  background-color: rgba(255, 59, 48, 0.15);
-  color: #ff3b30;
-  box-shadow: 0 2px 6px rgba(255, 59, 48, 0.2);
-}
-
-.metric-value.unknown {
-  background-color: rgba(150, 150, 150, 0.15);
-  color: #888;
-  font-style: italic;
-  box-shadow: 0 2px 6px rgba(150, 150, 150, 0.2);
-}
-
-.progress-bar-container {
-  height: 10px;
+  font-size: 16px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
   position: relative;
-  border-radius: 5px;
   overflow: hidden;
 }
 
-.progress-bar-bg {
+.metric-circle::before {
+  content: '';
   position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), transparent 70%);
+}
+
+.metric-circle.good {
+  background: linear-gradient(135deg, #34c759, #32ade6);
+}
+
+.metric-circle.average {
+  background: linear-gradient(135deg, #ff9500, #ff2d55);
+}
+
+.metric-circle.poor {
+  background: linear-gradient(135deg, #ff3b30, #ff375f);
+}
+
+.metric-circle.unknown {
+  background: linear-gradient(135deg, #8e8e93, #aeaeb2);
+}
+
+.metric-info {
   width: 100%;
-  height: 100%;
-  background-color: rgba(240, 240, 240, 0.7);
+  text-align: center;
 }
 
-.progress-bar {
+.metric-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+
+.metric-description {
+  color: #666;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.network-stats {
+  background: linear-gradient(135deg, #f5f7fa, #f9fafc);
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-top: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.network-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 16px;
+  position: relative;
+  padding-left: 16px;
+}
+
+.network-title::before {
+  content: '';
   position: absolute;
-  height: 100%;
-  transition: width 1s cubic-bezier(0.65, 0, 0.35, 1);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-  width: 0; /* 动画起始宽度 */
-  animation: progressFill 1.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-  animation-delay: 0.5s;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #34c759, #32ade6);
 }
 
-@keyframes progressFill {
-  to { width: var(--width, 0%); }
+.network-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
 }
 
-.progress-bar.good {
-  background: linear-gradient(to right, #34c759, #5dce7b);
+.network-item {
+  text-align: center;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.progress-bar.average {
-  background: linear-gradient(to right, #ff9500, #ffb340);
+.network-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #32ade6;
+  margin-bottom: 5px;
 }
 
-.progress-bar.poor {
-  background: linear-gradient(to right, #ff3b30, #ff6b60);
-}
-
-.progress-bar.unknown {
-  background: linear-gradient(to right, #aaa, #ccc);
-  opacity: 0.5;
+.network-label {
+  font-size: 14px;
+  color: #666;
 }
 
 /* 优化建议卡片 */
@@ -2489,5 +2596,631 @@ export default {
   .energy-item {
     width: 100%;
   }
+}
+
+/* 绿色托管信息卡片样式 */
+.green-hosting .detail-content {
+  padding: 15px;
+}
+
+.green-hosting .provider-info {
+  margin-bottom: 20px;
+}
+
+.green-hosting .provider-stats {
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 15px;
+}
+
+.green-value {
+  color: #34c759 !important;
+  font-weight: bold;
+}
+
+.green-hosting-info {
+  background-color: #f0f9f4;
+  border-radius: 8px;
+  padding: 12px 15px;
+  border-left: 4px solid #34c759;
+  margin-top: 15px;
+}
+
+.green-hosting-info p {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* 新的卡片布局样式 */
+.result-card-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.result-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  width: 100%;
+}
+
+.result-card {
+  flex: 1;
+  min-width: 320px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(230, 230, 230, 0.7);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.result-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, #34c759, #32ade6);
+  opacity: 0.8;
+}
+
+.result-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+.major-card {
+  min-height: 380px;
+}
+
+.wide-card {
+  width: 100%;
+  flex-basis: 100%;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fcfcfc;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  position: relative;
+}
+
+.card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
+  color: #32ade6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.result-card .details, 
+.result-card .carbon-stats,
+.result-card .performance-metrics,
+.result-card .suggestion-list,
+.result-card .energy-chart,
+.result-card .detail-content {
+  padding: 25px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 详情项目样式 */
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: #666;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.detail-value {
+  font-weight: 600;
+  color: #333;
+  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
+  padding: 6px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  font-size: 14px;
+}
+
+.highlight-text {
+  color: #34c759;
+  font-weight: bold;
+}
+
+/* 卡片摘要样式 */
+.card-summary {
+  padding: 20px 25px;
+  background-color: #f9f9f9;
+  margin-top: auto;
+  border-top: 1px solid #f0f0f0;
+}
+
+.card-summary p {
+  margin: 10px 0 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.summary-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.green-badge {
+  background-color: rgba(52, 199, 89, 0.15);
+  color: #34c759;
+}
+
+.standard-badge {
+  background-color: rgba(255, 149, 0, 0.15);
+  color: #ff9500;
+}
+
+/* 能源消耗网格 */
+.energy-consumption-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  padding: 25px;
+}
+
+.energy-consumption-item {
+  background: linear-gradient(135deg, #f9f9f9, #f5f5f5);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.energy-consumption-item:hover {
+  transform: translateY(-5px);
+}
+
+.consumption-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  margin-bottom: 15px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 25px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.data-center-icon {
+  background-color: rgba(52, 199, 89, 0.15);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2334c759"><path d="M4 1h16c1.1 0 2 .9 2 2v1c0 .55-.45 1-1 1H3c-.55 0-1-.45-1-1V3c0-1.1.9-2 2-2zm0 5h16c1.1 0 2 .9 2 2v1c0 .55-.45 1-1 1H3c-.55 0-1-.45-1-1V8c0-1.1.9-2 2-2zm0 5h16c1.1 0 2 .9 2 2v1c0 .55-.45 1-1 1H3c-.55 0-1-.45-1-1v-1c0-1.1.9-2 2-2z"/></svg>');
+}
+
+.network-icon {
+  background-color: rgba(90, 200, 250, 0.15);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%235ac8fa"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>');
+}
+
+.device-icon {
+  background-color: rgba(255, 149, 0, 0.15);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ff9500"><path d="M4 18h16c1.1 0 1.99-.9 1.99-2L22 5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2zM4 5h16v11H4V5zm8 14h2v-2h-2v2zm-4 0h2v-2H8v2zm8 0h2v-2h-2v2z"/></svg>');
+}
+
+.consumption-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.consumption-label {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 碳排放详情 */
+.carbon-impact .carbon-stats {
+  padding: 20px 25px;
+}
+
+.carbon-annual-impact {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f9f4, #e6f7eb);
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.impact-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.impact-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #34c759;
+  margin-bottom: 5px;
+}
+
+.impact-equivalent {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 碳排放评分 */
+.total-emission-highlight {
+  background: linear-gradient(135deg, #f0f9f4, #e6f7eb);
+  padding: 25px;
+  margin: 20px 25px;
+  border-radius: 12px;
+  text-align: center;
+  animation: pulse 3s infinite alternate;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 4px 15px rgba(52, 199, 89, 0.1); }
+  100% { box-shadow: 0 4px 25px rgba(52, 199, 89, 0.25); }
+}
+
+.highlight-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #34c759;
+  margin-bottom: 5px;
+}
+
+.highlight-value span {
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+}
+
+.highlight-label {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 数据源信息 */
+.data-source-info {
+  padding: 10px 25px;
+  background-color: #f9f9f9;
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+  margin-top: auto;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 响应式调整 */
+@media (max-width: 1024px) {
+  .result-row {
+    flex-direction: column;
+  }
+  
+  .result-card {
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .energy-consumption-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .score-container {
+    flex-direction: column;
+  }
+  
+  .carbon-score-card {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+}
+
+/* 性能指标和优化建议布局 */
+.performance-metrics-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 15px;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.metrics-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.metric-card {
+  flex: 1;
+  min-width: 200px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.metric-visual {
+  width: 100%;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.metric-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metric-circle.good {
+  background: linear-gradient(to right, #4caf50, #45a049);
+}
+
+.metric-circle.average {
+  background: linear-gradient(to right, #ff9500, #ffb340);
+}
+
+.metric-circle.poor {
+  background: linear-gradient(to right, #ff3b30, #ff6b60);
+}
+
+.metric-circle.unknown {
+  background: linear-gradient(to right, #aaa, #ccc);
+  opacity: 0.5;
+}
+
+.metric-info {
+  padding: 15px;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+}
+
+.metric-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.metric-description {
+  font-size: 14px;
+  color: #666;
+}
+
+.network-stats {
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-top: 8px;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.network-title {
+  font-size: 16px;
+  color: #2c3e50;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+}
+
+.network-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.network-item {
+  flex: 1;
+  min-width: 150px;
+  background-color: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.network-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.network-label {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 优化建议布局 */
+.suggestions-container {
+  padding: 25px;
+}
+
+.suggestions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.suggestion-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.suggestion-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.suggestion-header {
+  padding: 18px;
+  background: linear-gradient(135deg, #f8faff, #f0f4f9);
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+}
+
+.suggestion-icon {
+  margin-right: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(50, 173, 230, 0.15), rgba(52, 199, 89, 0.15));
+  color: #32ade6;
+  box-shadow: 0 4px 8px rgba(50, 173, 230, 0.15);
+}
+
+.suggestion-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 0.3px;
+}
+
+.suggestion-content {
+  padding: 20px;
+  color: #555;
+  font-size: 15px;
+  line-height: 1.7;
+  flex: 1;
+  background-color: #fff;
+  position: relative;
+}
+
+.suggestion-content::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  height: 2px;
+  top: 0;
+  background: linear-gradient(to right, rgba(50, 173, 230, 0.1), transparent);
+  border-radius: 2px;
+}
+
+.suggestion-impact {
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suggestion-impact.low {
+  background: linear-gradient(to right, #4caf50, #66bb6a);
+}
+
+.suggestion-impact.medium {
+  background: linear-gradient(to right, #ff9800, #ffa726);
+}
+
+.suggestion-impact.high {
+  background: linear-gradient(to right, #f44336, #ef5350);
+}
+
+@media (max-width: 768px) {
+  .suggestions-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics-grid {
+    flex-direction: column;
+  }
+  
+  .metric-card {
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+.energy-note {
+  padding: 15px;
+  background-color: #f5f7fa;
+  border-radius: 6px;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #666;
 }
 </style> 
