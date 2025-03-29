@@ -19,14 +19,6 @@ export default defineConfig({
     assetsDir: 'assets', // 静态资源目录
     emptyOutDir: true, // 构建前清空输出目录
     minify: 'esbuild', // 使用esbuild最小化代码，替换terser
-    chunkSizeWarningLimit: 1500, // 块大小警告限制
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'vendor': ['vue', 'element-plus'],
-          'charts': ['echarts', 'd3']
-        }
-      }
-    }
+    chunkSizeWarningLimit: 1500 // 块大小警告限制
   }
 }) 
