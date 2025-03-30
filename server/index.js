@@ -15,11 +15,29 @@ const useragent = require('express-useragent');
 const path = require('path');
 const https = require('https');
 const lighthouse = require('lighthouse');
-const chromeLauncher = require('chrome-launcher');
 const os = require('os');
 const { execSync } = require('child_process');
 const puppeteer = require('puppeteer');
 const fetch = require('node-fetch'); // 用于API请求
+
+// 声明chromeLauncher变量，稍后通过动态导入获取
+let chromeLauncher;
+
+// 异步初始化函数用于导入ESM模块
+async function initializeESModules() {
+  try {
+    // 动态导入chrome-launcher
+    chromeLauncher = await import('chrome-launcher');
+    console.log('Chrome Launcher模块已成功导入');
+  } catch (err) {
+    console.error('导入ESM模块失败:', err);
+  }
+}
+
+// 执行初始化
+initializeESModules().catch(err => {
+  console.error('初始化ESM模块时出错:', err);
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
