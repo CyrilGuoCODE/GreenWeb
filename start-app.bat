@@ -41,6 +41,9 @@ if not exist "node_modules" (
     
     echo 正在安装项目依赖，这可能需要几分钟...
     call npm install
+    call cd server
+    call npm install
+    call cd ..
     if !errorlevel! neq 0 (
         echo 依赖安装失败，请检查网络连接或手动运行 npm install
         goto End
