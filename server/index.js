@@ -14,7 +14,6 @@ const whois = require('whois-json');
 const useragent = require('express-useragent');
 const path = require('path');
 const https = require('https');
-const lighthouse = require('lighthouse');
 const os = require('os');
 const { execSync } = require('child_process');
 const puppeteer = require('puppeteer');
