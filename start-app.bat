@@ -49,7 +49,13 @@ if not exist "node_modules" (
         goto End
     )
     echo 依赖安装完成！
-) else (
+) else if not exist "server/node_modules" (
+    echo 正在安装项目依赖，这可能需要几分钟...
+    call cd server
+    call npm install
+    call cd ..
+    echo 依赖安装完成!
+)else (
     echo 项目依赖已安装
 )
 
