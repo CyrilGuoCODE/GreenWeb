@@ -329,7 +329,7 @@ app.get('/api/provider', async (req, res) => {
     
     // 计算数据中心PUE (电能使用效率)
     const [minPUE, maxPUE] = providerInfo.pueRange;
-    const dataCenterPUE = parseFloat((Math.random() * (maxPUE - minPUE) + minPUE).toFixed(2));
+    const dataCenterPUE = parseFloat(safeToFixed(Math.random() * (maxPUE - minPUE) + minPUE, 2));
     
     res.json({
       provider,
@@ -474,7 +474,7 @@ app.get('/api/carbon', async (req, res) => {
     const pageSizeKB = parseInt(pageSize);
     const countryCode = country || null; // 不提供默认值，如果没有则返回错误
     const renewable = parseFloat(renewablePercentage);
-    const dataCenterPUE = parseFloat(pue);
+    const dataCenterPUE = parseFloat(safeToFixed(pue, 2));
     const actualRequestCount = parseInt(requestCount);
     const actualDomainCount = parseInt(domainCount);
     const actualResponseTime = parseInt(responseTime) || 0;
@@ -924,14 +924,14 @@ function generateOptimizationSuggestions(data) {
   
   // 基于性能指标的建议
   if (data.performance.lcp > 2.5) {
-    suggestions.push(`优化最大内容绘制(LCP=${data.performance.lcp.toFixed(2)}s)，重点优化主要内容元素的加载时间`);
+    suggestions.push(`优化最大内容绘制(LCP=${safeToFixed(data.performance.lcp, 2)}s)，重点优化主要内容元素的加载时间`);
     if (data.performance.lcp > 5) {
       suggestions.push('LCP值严重超标，建议使用预加载(preload)关键资源并优化服务器响应速度');
     }
   }
   
   if (data.performance.cls > 0.1) {
-    suggestions.push(`减少累积布局偏移(CLS=${data.performance.cls.toFixed(3)})，预先设置图片和元素尺寸`);
+    suggestions.push(`减少累积布局偏移(CLS=${safeToFixed(data.performance.cls, 3)})，预先设置图片和元素尺寸`);
     if (data.performance.cls > 0.25) {
       suggestions.push('CLS值严重超标，检查是否有动态注入内容导致布局偏移，为所有图片和嵌入元素设置明确尺寸');
     }
@@ -965,11 +965,11 @@ function generateOptimizationSuggestions(data) {
   }
   
   if (data.pue > 1.5) {
-    suggestions.push(`当前数据中心PUE值(${data.pue})较高，选择更高能效的服务提供商可降低碳排放`);
+    suggestions.push(`当前数据中心PUE值(${safeToFixed(data.pue, 2)})较高，选择更高能效的服务提供商可降低碳排放`);
   }
   
   if (data.totalCarbonEmission > 1.5) {
-    suggestions.push(`当前页面单次访问碳排放(${data.totalCarbonEmission.toFixed(2)}gCO2e)偏高，建议全面优化页面资源`);
+    suggestions.push(`当前页面单次访问碳排放(${safeToFixed(data.totalCarbonEmission, 2)}gCO2e)偏高，建议全面优化页面资源`);
     if (data.totalCarbonEmission > 3) {
       suggestions.push('碳排放量远高于平均水平，建议对页面进行全面性能审计并减少不必要的资源加载');
     }
@@ -1589,4 +1589,10 @@ function calculateSecurityScore(headers) {
     score: Math.min(93, score),
     details
   };
+}
+
+// 添加安全的toFixed函数，避免对null/undefined调用toFixed
+function safeToFixed(value, digits = 2) {
+  if (value === null || value === undefined) return '0.00';
+  return Number(value).toFixed(digits);
 }

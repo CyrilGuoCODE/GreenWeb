@@ -72,14 +72,14 @@
                   <div class="carbon-details">
                     <div class="total-title">此网页单次访问的碳排放</div>
                     <div class="total-value">
-                      {{ result.totalCarbonEmission?.toFixed(4) || '0.0000' }} gCO2e
+                      {{ safeToFixed(result.totalCarbonEmission, 4) || '0.0000' }} gCO2e
                       <span v-if="result.estimatedData && result.estimatedData.includes('totalCarbonEmission')" class="estimated-data-tag">估算</span>
                     </div>
                     <div class="total-breakdown">
                       <div class="total-item">
                         <span class="total-label">月度碳排放:</span>
                         <span class="total-value">
-                          {{ result.monthlyCarbonEmission?.toFixed(2) || '0.00' }} kgCO2e
+                          {{ safeToFixed(result.monthlyCarbonEmission, 2) || '0.00' }} kgCO2e
                           <span v-if="result.estimatedData && result.estimatedData.includes('monthlyCarbonEmission')" class="estimated-data-tag">估算</span>
                         </span>
                       </div>
@@ -90,7 +90,7 @@
                       <div class="total-item">
                         <span class="total-label">年度碳排放:</span>
                         <span class="total-value">
-                          {{ result.annualCarbonEmission?.toFixed(2) || '0.00' }} kgCO2e
+                          {{ safeToFixed(result.annualCarbonEmission, 2) || '0.00' }} kgCO2e
                           <span v-if="result.estimatedData && result.estimatedData.includes('annualCarbonEmission')" class="estimated-data-tag">估算</span>
                         </span>
                       </div>
@@ -110,21 +110,21 @@
                     <div class="energy-item">
                       <div class="energy-label">数据中心</div>
                       <div class="energy-value">
-                        {{ (result.dataCenterEnergy || 0).toFixed(4) }} Wh
+                        {{ safeToFixed(result.dataCenterEnergy || 0, 4) }} Wh
                         <span v-if="result.estimatedData && result.estimatedData.includes('dataCenterEnergy')" class="estimated-data-tag">估算</span>
                       </div>
                     </div>
                     <div class="energy-item">
                       <div class="energy-label">网络传输</div>
                       <div class="energy-value">
-                        {{ (result.transmissionEnergy || 0).toFixed(4) }} Wh
+                        {{ safeToFixed(result.transmissionEnergy || 0, 4) }} Wh
                         <span v-if="result.estimatedData && result.estimatedData.includes('transmissionEnergy')" class="estimated-data-tag">估算</span>
                       </div>
                     </div>
                     <div class="energy-item">
                       <div class="energy-label">用户设备</div>
                       <div class="energy-value">
-                        {{ (result.deviceEnergy || 0).toFixed(4) }} Wh
+                        {{ safeToFixed(result.deviceEnergy || 0, 4) }} Wh
                         <span v-if="result.estimatedData && result.estimatedData.includes('deviceEnergy')" class="estimated-data-tag">估算</span>
                       </div>
                     </div>
@@ -250,7 +250,7 @@
                     </div>
                   </div>
                   <div class="total-emission-highlight">
-                    <div class="highlight-value">{{ result.totalCarbonEmission.toFixed(4) }} <span>gCO2e</span></div>
+                    <div class="highlight-value">{{ safeToFixed(result.totalCarbonEmission, 4) }} <span>gCO2e</span></div>
                     <div class="highlight-label">单次访问碳排放</div>
                   </div>
                 </div>
@@ -284,7 +284,7 @@
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">能源强度:</span>
-                    <span class="detail-value">{{ result.energyIntensity !== null ? `${result.energyIntensity.toFixed(2)} kWh/GB` : '无法获取' }}</span>
+                    <span class="detail-value">{{ result.energyIntensity !== null ? `${safeToFixed(result.energyIntensity, 2)} kWh/GB` : '无法获取' }}</span>
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">PUE值:</span>
@@ -348,9 +348,9 @@
                   </div>
                   <div class="carbon-annual-impact">
                     <div class="impact-title">年度碳排放估计</div>
-                    <div class="impact-value">{{ result.annualCarbonEmission.toFixed(2) }} kgCO2e</div>
+                    <div class="impact-value">{{ safeToFixed(result.annualCarbonEmission, 2) }} kgCO2e</div>
                     <div class="impact-equivalent">
-                      相当于种植 <span class="highlight-text">{{ Math.round(result.annualCarbonEmission / globalConstants.treeCO2PerYear) }}</span> 棵树才能抵消
+                      相当于种植 <span class="highlight-text">{{ Math.round((result.annualCarbonEmission || 0) / globalConstants.treeCO2PerYear) }}</span> 棵树才能抵消
                     </div>
                   </div>
                 </div>
@@ -801,22 +801,22 @@ export default {
       
       // 时间相关指标
       if (metric === 'fcp' || metric === 'lcp') {
-        return `${value.toFixed(2)}s`;
+        return `${this.safeToFixed(value, 2)}s`;
       } else if (metric === 'fid' || metric === 'ttfb' || metric === 'responseTime') {
         return `${Math.round(value)}ms`;
       } 
       // 布局偏移指标
       else if (metric === 'cls') {
-        return value.toFixed(3);
+        return this.safeToFixed(value, 3);
       } 
       // 大小相关指标
       else if (metric === 'pageSize' || metric === 'totalResourceSize') {
         if (value < 1024) {
-          return `${value.toFixed(2)} B`;
+          return `${this.safeToFixed(value, 2)} B`;
         } else if (value < 1024 * 1024) {
-          return `${(value / 1024).toFixed(2)} KB`;
+          return `${this.safeToFixed(value / 1024, 2)} KB`;
         } else {
-          return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+          return `${this.safeToFixed(value / (1024 * 1024), 2)} MB`;
         }
       } 
       // 计数指标
@@ -829,22 +829,22 @@ export default {
       } 
       // 能源指标
       else if (metric === 'energyConsumption' || metric === 'dataCenterEnergy' || metric === 'transmissionEnergy' || metric === 'deviceEnergy') {
-        return `${value.toFixed(4)} Wh`;
+        return `${this.safeToFixed(value, 4)} Wh`;
       } 
       // 碳排放指标
       else if (metric === 'carbonEmission') {
-        return `${value.toFixed(2)} gCO2e`;
+        return `${this.safeToFixed(value, 2)} gCO2e`;
       } 
       else if (metric === 'annualCarbonEmission') {
-        return `${value.toFixed(2)} kgCO2e`;
+        return `${this.safeToFixed(value, 2)} kgCO2e`;
       } 
       // 百分比指标
       else if (metric === 'renewablePercentage') {
-        return `${value.toFixed(1)}%`;
+        return `${this.safeToFixed(value, 1)}%`;
       } 
       // PUE指标
       else if (metric === 'pue') {
-        return value.toFixed(2);
+        return this.safeToFixed(value, 2);
       } 
       // 评分指标
       else if (metric === 'securityScore') {
@@ -913,7 +913,7 @@ export default {
     // 格式化数字
     formatNumber(value) {
       if (value === null || value === undefined) return '无法获取'
-      return parseFloat(value).toFixed(2)
+      return this.safeToFixed(parseFloat(value), 2)
     },
     
     // 获取碳排放分数样式类
@@ -1035,13 +1035,13 @@ export default {
     // 格式化能源消耗值
     formatEnergy(value) {
       if (!value) return '0 Wh'
-      return (value * 1000).toFixed(3) + ' Wh'
+      return this.safeToFixed(value * 1000, 3) + ' Wh'
     },
     
     // 获取缓存效率描述
     getCachingEfficiency(value) {
       if (!value) return '标准优化'
-      const percent = (value * 100).toFixed(0)
+      const percent = this.safeToFixed(value * 100, 0)
       if (value < 0.2) return `基础优化 (${percent}%)`
       if (value < 0.4) return `标准优化 (${percent}%)`
       if (value < 0.6) return `良好优化 (${percent}%)`
@@ -1051,7 +1051,7 @@ export default {
     // 格式化文本长度
     formatTextLength(length) {
       if (!length && length !== 0) return 'N/A';
-      if (length > 10000) return (length / 1000).toFixed(1) + 'K 字符';
+      if (length > 10000) return this.safeToFixed(length / 1000, 1) + 'K 字符';
       return length + ' 字符';
     },
     
@@ -1146,10 +1146,10 @@ export default {
       bytes = Number(bytes);
       
       if (bytes >= 1048576) {
-        return (bytes / 1048576).toFixed(2) + ' MB';
+        return this.safeToFixed(bytes / 1048576, 2) + ' MB';
       }
       if (bytes >= 1024) {
-        return (bytes / 1024).toFixed(2) + ' KB';
+        return this.safeToFixed(bytes / 1024, 2) + ' KB';
       }
       return bytes + ' B';
     },
@@ -1221,15 +1221,27 @@ export default {
       
       if (wattHours < 0.001) {
         // 小于1微瓦时，显示为微瓦时
-        return `${(wattHours * 1000000).toFixed(2)} μWh`;
+        return `${this.safeToFixed(wattHours * 1000000, 2)} μWh`;
       } else if (wattHours < 1) {
         // 小于1毫瓦时，显示为毫瓦时
-        return `${(wattHours * 1000).toFixed(2)} mWh`;
+        return `${this.safeToFixed(wattHours * 1000, 2)} mWh`;
       } else {
         // 正常显示瓦时
-        return `${wattHours.toFixed(4)} Wh`;
+        return `${this.safeToFixed(wattHours, 4)} Wh`;
       }
-    }
+    },
+    
+    // 安全的格式化函数，防止对null或undefined调用toFixed
+    safeToFixed(value, digits = 2) {
+      if (value === null || value === undefined) return '0.00';
+      return Number(value).toFixed(digits);
+    },
+    
+    // 格式化数字
+    formatNumber(value) {
+      if (value === null || value === undefined) return '无法获取';
+      return this.safeToFixed(parseFloat(value), 2);
+    },
   }
 }
 </script>
