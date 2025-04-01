@@ -2,40 +2,22 @@
 
 GreenWeb是一个综合性的网站碳中和检测工具，可以评估网站的碳排放并提供优化建议。该工具通过分析网站服务器位置、页面大小、性能指标等因素，计算网站访问产生的碳排放量，并提供可视化展示。
 
-官方网站: https://GreenWeb.pages.dev/
-
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/cyrilguocode/GreenWeb)
-
 ## 功能特点
 
 - **碳排放检测**：基于真实数据计算网站单次访问和月度碳排放量
 - **能源分析**：显示可再生能源使用比例和能源消耗细节
 - **性能评估**：测量和展示关键性能指标（FCP、LCP、CLS等）
 - **优化建议**：根据分析结果提供针对性的优化建议
-- **Netlify部署支持**：提供完整的Netlify部署配置，一键部署到Netlify
+- **依赖管理**：自动同步前后端依赖，确保项目依赖的一致性
+- **数据安全处理**：对所有计算结果进行安全处理，防止null或undefined值导致的错误
 
 ## 技术架构
 
-- **前端**：Vue 3 + Element Plus + ECharts
+- **前端**：Vue 3 + Element Plus
 - **后端**：Node.js + Express
 - **数据分析**：自定义算法和外部API集成
 - **构建工具**：Vite
 - **自动化脚本**：批处理脚本用于项目管理和依赖维护
-- **无服务器功能**：支持Netlify Functions部署
-
-## 在线部署
-
-### Netlify一键部署（推荐）
-
-1. 点击上方的"Deploy to Netlify"按钮
-2. 按照Netlify指引完成部署流程
-3. 等待几分钟，即可获得一个完整功能的GreenWeb应用
-
-详细部署指南请参考[NETLIFY.md](NETLIFY.md)文件。
-
-### 其他部署选项
-
-详见本文档下方的"安装与运行"部分。
 
 ## 安装与运行
 
