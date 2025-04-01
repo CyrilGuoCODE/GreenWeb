@@ -7,10 +7,22 @@ import axios from 'axios';
 
 // 获取当前环境的基础URL
 function getBaseUrl() {
-  // 在生产环境中，API和前端在同一域下运行
-  // 在开发环境中，API在localhost:3000上运行
-  const isProd = import.meta.env.PROD;
-  return isProd ? '/api' : 'http://localhost:3000/api';
+  // 检查是否在Netlify环境中
+  const isNetlify = window.location.hostname.includes('netlify.app') || 
+                    import.meta.env.VITE_NETLIFY === 'true';
+  
+  // 在生产环境中的不同处理
+  if (import.meta.env.PROD) {
+    // Netlify部署使用函数路径
+    if (isNetlify) {
+      return '/.netlify/functions/api';
+    }
+    // 常规生产环境 - API和前端在同一域下运行
+    return '/api';
+  }
+  
+  // 开发环境 - API在localhost:3000上运行
+  return 'http://localhost:3000/api';
 }
 
 // 代理服务器URL
